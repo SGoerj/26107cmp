@@ -1,0 +1,104 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: 6node_dynamic | 算法: ppo]
+==========================================
+节点: anode16
+日期: Sun Jul 12 10:08:22 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+  ✅ 配置加载 OK: 节点=6 state_dim=37 n_actions=13
+  (路径测试跳过: 6node_dynamic 拓扑与默认不同)
+
+[2/3] 开始训练 (场景 6node_dynamic, 算法 ppo)...
+[配置] configs/env_6node_dynamic.yaml  | 节点=6 state_dim=37 n_actions=13 max_steps=50
+[设备] 使用 CPU 训练
+[动作数] 13  |  [状态维度] 37D
+[网络] ActorCritic: 37→128→64→(actor:13 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=59  avg=  -1.64  flag%=85%  policy_loss=+0.222  value_loss=196.767  entropy=2.534
+[Rollout   5/60] steps=2000 eps=84  avg=   2.63  flag%=81%  policy_loss=+0.297  value_loss=114.299  entropy=2.183
+[Rollout  10/60] steps=2000 eps=47  avg=  -4.58  flag%=76%  policy_loss=+0.280  value_loss=245.016  entropy=1.964
+[Rollout  15/60] steps=2000 eps=77  avg=   2.37  flag%=82%  policy_loss=+0.277  value_loss=132.629  entropy=1.884
+[Rollout  20/60] steps=2000 eps=42  avg=  -5.84  flag%=71%  policy_loss=+0.203  value_loss=228.616  entropy=1.591
+[Rollout  25/60] steps=2000 eps=95  avg=   8.78  flag%=88%  policy_loss=+0.268  value_loss=112.492  entropy=1.752
+[Rollout  30/60] steps=2000 eps=43  avg=  -7.72  flag%=75%  policy_loss=+0.255  value_loss=273.544  entropy=1.356
+[Rollout  35/60] steps=2000 eps=89  avg=   6.55  flag%=86%  policy_loss=+0.265  value_loss=103.946  entropy=1.752
+[Rollout  40/60] steps=2000 eps=40  avg=  -7.42  flag%=76%  policy_loss=+0.252  value_loss=256.279  entropy=1.203
+[Rollout  45/60] steps=2000 eps=90  avg=   7.36  flag%=86%  policy_loss=+0.206  value_loss=107.500  entropy=1.717
+[Rollout  50/60] steps=2000 eps=54  avg=  -2.75  flag%=86%  policy_loss=+0.323  value_loss=230.094  entropy=1.573
+[Rollout  55/60] steps=2000 eps=55  avg= -20.74  flag%=62%  policy_loss=+0.257  value_loss=238.492  entropy=1.442
+[Rollout  60/60] steps=2000 eps=96  avg=  14.36  flag%=96%  policy_loss=+0.282  value_loss=67.013  entropy=1.221
+
+======================================================================
+  🎯 攻击链演示 —— PPO 自主决策 (greedy)
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_2           Gateway        → JumpBox            +1.70
+  1    RECON            JumpDMZ        →                    +0.20
+  2    VULN_SCAN        JumpDMZ        →                    +0.20
+  3    EXPLOIT_CREDS    JumpDMZ        ✅ 攻陷                 +2.70
+  4    MOVE_4           JumpDMZ        移动                   +1.70
+  5    RECON            PivotSrv       →                    +0.20
+  6    VULN_SCAN        PivotSrv       →                    +0.20
+  7    EXPLOIT_CREDS    PivotSrv       ✅ 攻陷                 +2.70
+  8    MOVE_2           PivotSrv       → JumpBox            -2.30
+  9    PRIVESC          JumpDMZ        →                    +4.70
+  10   MOVE_4           JumpDMZ        移动                   -7.30 ⚠️
+  11   MOVE_2           PivotSrv       → JumpBox            -2.30
+  12   MOVE_4           JumpDMZ        移动                   -2.30
+  13   MOVE_2           PivotSrv       → JumpBox            -2.30
+  14   MOVE_4           JumpDMZ        移动                   -2.30
+  15   MOVE_2           PivotSrv       → JumpBox            -2.30
+  16   MOVE_4           JumpDMZ        移动                   -2.30
+  17   MOVE_2           PivotSrv       → JumpBox            -2.30
+  18   MOVE_4           JumpDMZ        移动                   -2.30
+  19   MOVE_2           PivotSrv       → JumpBox            -2.30
+  20   MOVE_4           JumpDMZ        移动                   -7.30 ⚠️
+  21   MOVE_2           PivotSrv       → JumpBox            -2.30
+  22   MOVE_4           JumpDMZ        移动                   -7.30 ⚠️
+  23   MOVE_2           PivotSrv       → JumpBox            -2.30
+  24   MOVE_4           JumpDMZ        移动                   -2.30
+  25   MOVE_2           PivotSrv       → JumpBox            -2.30
+  26   MOVE_4           JumpDMZ        移动                   -2.30
+  27   MOVE_5           PivotSrv       移动                   +1.70
+  28   RECON            DC             →                    +0.20
+  29   VULN_SCAN        DC             →                    +0.20
+  30   EXPLOIT_CVE      DC             ✅ 攻陷                 +2.70
+  31   MOVE_4           DC             移动                   -2.30
+  32   MOVE_5           PivotSrv       移动                   -2.30
+  33   MOVE_4           DC             移动                   -2.30
+  34   MOVE_5           PivotSrv       移动                   -2.30
+  35   MOVE_4           DC             移动                   -2.30
+  36   MOVE_5           PivotSrv       移动                   -2.30
+  37   MOVE_4           DC             移动                   -2.30
+  38   MOVE_5           PivotSrv       移动                   -2.30
+  39   MOVE_4           DC             移动                   -2.30
+  40   MOVE_5           PivotSrv       移动                   -2.30
+  41   MOVE_4           DC             移动                   -2.30
+  42   MOVE_5           PivotSrv       移动                   -2.30
+  43   MOVE_4           DC             移动                   -2.30
+  44   MOVE_5           PivotSrv       移动                   -2.30
+  45   MOVE_4           DC             移动                   -7.30 ⚠️
+  46   MOVE_5           PivotSrv       移动                   -2.30
+  47   MOVE_4           DC             移动                   -2.30
+  48   MOVE_5           PivotSrv       移动                   -2.30
+  49   MOVE_4           DC             移动                   -2.30
+----------------------------------------------------------------------
+  总奖励: -86.00  |  步数: 50
+  被检测: 4 次  |  ❌ 未拿到 flag
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    🟢 👑 [RV] JumpBox        🏁
+    ⚪    [--] DC            
+
+[保存] PPO model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_6node_dynamic.pt
+
+[3/3] 训练完成！演示结果如上。
+==========================================
+日志已保存到 logs/
+==========================================

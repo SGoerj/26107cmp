@@ -1,0 +1,8 @@
+Traceback (most recent call last):
+  File "<string>", line 7, in <module>
+    t()
+    ~^^
+  File "/home/scc/pb25331925/projects/rl-attack-defense/src/test_local_v2.py", line 139, in test_state_dimension
+    assert state.dtype == np.float32
+                          ^^
+NameError: name 'np' is not defined

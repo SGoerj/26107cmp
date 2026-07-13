@@ -1,0 +1,35 @@
+==========================================
+节点: anode16
+日期: Sat Jul 11 03:21:45 AM UTC 2026
+==========================================
+[设备] 使用 CPU 训练
+[Ep   50/800] reward=   3.00  avg100=  -2.48  epsilon=0.905  buffer=289
+[Ep  100/800] reward=  -4.00  avg100=  -2.77  epsilon=0.819  buffer=574
+[Ep  150/800] reward=   0.00  avg100=  -2.35  epsilon=0.741  buffer=827
+[Ep  200/800] reward=   4.50  avg100=  -1.55  epsilon=0.670  buffer=1056
+[Ep  250/800] reward=   0.00  avg100=  -0.90  epsilon=0.606  buffer=1285
+[Ep  300/800] reward=  -2.50  avg100=  -0.10  epsilon=0.548  buffer=1501
+[Ep  350/800] reward=  -1.50  avg100=   0.38  epsilon=0.496  buffer=1710
+[Ep  400/800] reward=   3.50  avg100=   0.61  epsilon=0.449  buffer=1918
+[Ep  450/800] reward=  -1.50  avg100=   0.96  epsilon=0.406  buffer=2124
+[Ep  500/800] reward=  -9.50  avg100=   1.75  epsilon=0.368  buffer=2312
+[Ep  550/800] reward=   4.50  avg100=   2.45  epsilon=0.333  buffer=2472
+[Ep  600/800] reward=   4.50  avg100=   2.52  epsilon=0.301  buffer=2647
+[Ep  650/800] reward=   4.50  avg100=   2.52  epsilon=0.272  buffer=2829
+[Ep  700/800] reward= -11.50  avg100=   2.31  epsilon=0.246  buffer=3006
+[Ep  750/800] reward=   9.50  avg100=   2.50  epsilon=0.223  buffer=3183
+[Ep  800/800] reward=  -9.50  avg100=   2.90  epsilon=0.202  buffer=3345
+
+============================================================
+🎯 渗透路径演示
+============================================================
+  Internet             → VPN                   reward= -0.50
+  VPN                  → Jump                  reward= -0.50
+  Jump                 → DB-Master             reward= +5.50  ⚠️  DETECTED! (累计 1 次)
+------------------------------------------------------------
+路径: Internet → VPN → Jump → DB-Master
+总奖励: 4.50  |  步数: 3  |  被检测: 1 次
+============================================================
+==========================================
+训练完成, 日志已保存到 logs/
+==========================================

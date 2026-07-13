@@ -1,0 +1,65 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: default_dynamic | 算法: ppo]
+==========================================
+节点: anode16
+日期: Sun Jul 12 09:37:02 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+  ✅ 配置加载 OK: 节点=4 state_dim=27 n_actions=11
+  (路径测试跳过: default_dynamic 拓扑与默认不同)
+
+[2/3] 开始训练 (场景 default_dynamic, 算法 ppo)...
+[配置] configs/env_default_dynamic.yaml  | 节点=4 state_dim=27 n_actions=11 max_steps=40
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=92  avg=   5.52  flag%=96%  policy_loss=+0.272  value_loss=250.792  entropy=2.357
+[Rollout   5/60] steps=2000 eps=165  avg=  25.91  flag%=100%  policy_loss=+0.206  value_loss=62.019  entropy=1.616
+[Rollout  10/60] steps=2000 eps=169  avg=  27.08  flag%=100%  policy_loss=+0.243  value_loss=19.702  entropy=1.601
+[Rollout  15/60] steps=2000 eps=173  avg=  27.75  flag%=100%  policy_loss=+0.241  value_loss=15.650  entropy=1.539
+[Rollout  20/60] steps=2000 eps=176  avg=  29.90  flag%=100%  policy_loss=+0.138  value_loss=19.211  entropy=1.010
+[Rollout  25/60] steps=2000 eps=181  avg=  30.21  flag%=100%  policy_loss=+0.205  value_loss=16.071  entropy=0.672
+[Rollout  30/60] steps=2000 eps=181  avg=  30.20  flag%=100%  policy_loss=+0.137  value_loss=15.050  entropy=0.764
+[Rollout  35/60] steps=2000 eps=181  avg=  29.56  flag%=100%  policy_loss=+0.111  value_loss=11.487  entropy=0.856
+[Rollout  40/60] steps=2000 eps=180  avg=  30.25  flag%=100%  policy_loss=+0.169  value_loss=12.141  entropy=0.757
+[Rollout  45/60] steps=2000 eps=181  avg=  29.70  flag%=100%  policy_loss=+0.201  value_loss=13.505  entropy=0.670
+[Rollout  50/60] steps=2000 eps=181  avg=  30.11  flag%=100%  policy_loss=+0.156  value_loss=14.016  entropy=0.599
+[Rollout  55/60] steps=2000 eps=180  avg=  30.16  flag%=100%  policy_loss=+0.109  value_loss=14.796  entropy=0.572
+[Rollout  60/60] steps=2000 eps=179  avg=  29.83  flag%=100%  policy_loss=+0.127  value_loss=15.490  entropy=0.516
+
+======================================================================
+  🎯 攻击链演示 —— PPO 自主决策 (greedy)
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_2           Gateway        → JumpBox            +1.70
+  1    RECON            JumpBox        →                    +0.20
+  2    VULN_SCAN        JumpBox        ⚠️ 被检测               -4.80 ⚠️
+  3    EXPLOIT_CREDS    JumpBox        ✅ 攻陷                 +2.70
+  4    PRIVESC          JumpBox        →                    +4.70
+  5    MOVE_3           JumpBox        → DC                 +1.70
+  6    RECON            DC             →                    +0.20
+  7    VULN_SCAN        DC             →                    +0.20
+  8    EXPLOIT_CVE      DC             ✅ 攻陷                 +2.70
+  9    PRIVESC          DC             ⚠️ 被检测               -0.30 ⚠️
+  10   EXFIL            DC             🏁 FLAG!             +19.70 ⚠️
+----------------------------------------------------------------------
+  总奖励: +28.70  |  步数: 11
+  被检测: 3 次  |  🏁 拿到 FLAG!
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    🟢 👑 [RV] JumpBox        🏁
+    🟢 👑 [RV] DC             🏁
+
+[保存] PPO model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_default_dynamic.pt
+
+[3/3] 训练完成！演示结果如上。
+==========================================
+日志已保存到 logs/
+==========================================

@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/home/scc/pb25331925/projects/rl-attack-defense/src/agent_ppo.py", line 355, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/src/agent_ppo.py", line 141, in train
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/optim/adam.py", line 102, in __init__
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/optim/optimizer.py", line 405, in __init__
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_compile.py", line 47, in inner
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/__init__.py", line 13, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/aot_compile.py", line 17, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/convert_frame.py", line 62, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/symbolic_convert.py", line 56, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/exc.py", line 46, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/_dynamo/utils.py", line 68, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/torch/fx/experimental/symbolic_shapes.py", line 3, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/sympy/__init__.py", line 74, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/sympy/assumptions/__init__.py", line 9, in <module>
+  File "/home/scc/pb25331925/projects/rl-attack-defense/.venv/lib/python3.14/site-packages/sympy/assumptions/ask.py", line 5, in <module>
+ModuleNotFoundError: No module named 'sympy.assumptions.cnf'

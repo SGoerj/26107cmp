@@ -1,0 +1,160 @@
+==========================================
+  🔥 RL 自主攻击智能体 v2  [场景: default]
+  算法: Double Dueling DQN
+==========================================
+节点: anode16
+日期: Sun Jul 12 03:46:31 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+============================================================
+测试 1: 安全路径攻击链 (Gateway → JumpBox → DC)
+============================================================
+   1. MOVE to JumpBox (2)               @ Gateway      r= +1.70
+   2. RECON JumpBox                     @ JumpBox      r= +0.20
+   3. VULN_SCAN JumpBox                 @ JumpBox      r= +0.20
+   4. EXPLOIT_CREDS JumpBox             @ JumpBox      r= +2.70
+   5. MOVE to DC (3)                    @ JumpBox      r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= +2.70
+   9. PRIVESC DC                        @ DC           r= -0.30  ⚠️ DETECTED
+  10. EXFIL DC 🏁                        @ DC           r=+24.70  🏁
+------------------------------------------------------------
+  ✅ 安全路径测试通过  总奖励=+34.00  步数=10  检测=1次
+
+============================================================
+测试 2: 快路径攻击链 (Gateway → WebServer → DC)
+============================================================
+   1. MOVE to WebServer (1)             @ Gateway      r= +1.70
+   2. RECON Web                         @ WebServer    r= +0.20
+   3. VULN_SCAN Web                     @ WebServer    r= +0.20
+   4. EXPLOIT_CVE Web                   @ WebServer    r= +2.70
+   5. MOVE to DC (3)                    @ WebServer    r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= +2.70
+   9. PRIVESC DC                        @ DC           r= +4.70
+  10. EXFIL DC 🏁                        @ DC           r=+24.70  🏁
+------------------------------------------------------------
+  ✅ 快路径测试通过  总奖励=+39.00  步数=10  检测=0次
+
+============================================================
+测试 3: 无效动作拒绝 + Gateway 防 farming
+============================================================
+  ✅ Gateway 已 root, PRIVESC 不合法 (防 farming)
+  ✅ Gateway 已 RECON, 不可重复扫描
+  ✅ Gateway 无 flag, EXFIL 不合法
+------------------------------------------------------------
+  ✅ 前置条件检查全部通过
+
+============================================================
+测试 4: 状态向量维度
+============================================================
+  ✅ 状态向量: shape=(27,)
+  ✅ Gateway 初始: cur=0, comp=1, recon=1, vuln=1, root=1
+------------------------------------------------------------
+  ✅ 状态向量测试全部通过
+
+============================================================
+测试 5: JumpBox vs WebServer 检测对比 (各 300 次)
+============================================================
+  JumpBox (安全): 平均检测 = 2.02 次
+  WebServer (快): 平均检测 = 2.55 次
+  安全路径少被检测 0.53 次
+  ✅ 安全路径确实检测更少
+------------------------------------------------------------
+  冒烟测试通过 ✅
+
+[2/3] 开始训练 (2000 episodes, 场景 default)...
+[配置] configs/env_default.yaml  | 节点=4 state_dim=27 n_actions=11 max_steps=40
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] Dueling Network: 27→128→64→(V:32→1 | A:32→11)
+[算法] Double DQN + Action Masking
+[Ep   100/2000] reward= -11.30  avg100=   8.02  ε=0.923  flag%=92%  det=6 ★
+[Ep   200/2000] reward=  11.50  avg100=   6.17  ε=0.852  flag%=87%  det=6
+[Ep   300/2000] reward= -29.70  avg100=  -0.71  ε=0.787  flag%=82%  det=6
+[Ep   400/2000] reward= -20.10  avg100=  -2.43  ε=0.726  flag%=79%  det=5
+[Ep   500/2000] reward=  12.50  avg100= -17.32  ε=0.670  flag%=64%  det=4
+[Ep   600/2000] reward=  38.70  avg100= -12.67  ε=0.619  flag%=65%  det=1
+[Ep   700/2000] reward=  -6.70  avg100= -10.58  ε=0.571  flag%=66%  det=6
+[Ep   800/2000] reward= -61.00  avg100= -26.19  ε=0.527  flag%=49%  det=5
+[Ep   900/2000] reward=  29.10  avg100= -27.17  ε=0.487  flag%=48%  det=2
+[Ep  1000/2000] reward=  31.20  avg100= -31.50  ε=0.449  flag%=39%  det=3
+[Ep  1100/2000] reward= -41.00  avg100= -33.61  ε=0.415  flag%=37%  det=1
+[Ep  1200/2000] reward= -46.00  avg100= -38.62  ε=0.383  flag%=30%  det=2
+[Ep  1300/2000] reward= -75.00  avg100= -37.29  ε=0.353  flag%=33%  det=5
+[Ep  1400/2000] reward= -56.00  avg100= -42.55  ε=0.326  flag%=22%  det=4
+[Ep  1500/2000] reward= -51.00  avg100= -37.02  ε=0.301  flag%=30%  det=3
+[Ep  1600/2000] reward= -41.00  avg100= -48.78  ε=0.278  flag%=12%  det=1
+[Ep  1700/2000] reward= -75.00  avg100= -46.98  ε=0.257  flag%=15%  det=5
+[Ep  1800/2000] reward= -61.00  avg100= -49.01  ε=0.237  flag%=12%  det=5
+[Ep  1900/2000] reward= -55.00  avg100= -47.54  ε=0.219  flag%=14%  det=1
+[Ep  2000/2000] reward= -61.00  avg100= -52.60  ε=0.202  flag%=9%  det=5
+
+[Best] avg100 峰值=12.51 @ Ep147, 用它演示 (而非 final)
+
+======================================================================
+  🎯 攻击链演示 —— Double Dueling DQN 自主决策
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_2           Gateway        → JumpBox            +1.70   
+  1    RECON            JumpBox        →                    +0.20   
+  2    VULN_SCAN        JumpBox        →                    +0.20   
+  3    EXPLOIT_CREDS    JumpBox        ✅ 攻陷                 -2.30 ⚠️
+  4    PRIVESC          JumpBox        →                    +4.70   
+  5    MOVE_0           JumpBox        → Gateway            -2.30   
+  6    MOVE_2           Gateway        → JumpBox            -2.30   
+  7    MOVE_0           JumpBox        → Gateway            -2.30   
+  8    MOVE_2           Gateway        → JumpBox            -2.30   
+  9    MOVE_0           JumpBox        → Gateway            -2.30   
+  10   MOVE_2           Gateway        → JumpBox            -2.30   
+  11   MOVE_0           JumpBox        → Gateway            -2.30   
+  12   MOVE_2           Gateway        → JumpBox            -2.30   
+  13   MOVE_0           JumpBox        → Gateway            -2.30   
+  14   MOVE_2           Gateway        → JumpBox            -2.30   
+  15   MOVE_0           JumpBox        → Gateway            -2.30   
+  16   MOVE_2           Gateway        → JumpBox            -2.30   
+  17   MOVE_0           JumpBox        → Gateway            -2.30   
+  18   MOVE_2           Gateway        → JumpBox            -2.30   
+  19   MOVE_0           JumpBox        → Gateway            -2.30   
+  20   MOVE_2           Gateway        → JumpBox            -2.30   
+  21   MOVE_0           JumpBox        → Gateway            -2.30   
+  22   MOVE_2           Gateway        → JumpBox            -2.30   
+  23   MOVE_0           JumpBox        → Gateway            -2.30   
+  24   MOVE_2           Gateway        → JumpBox            -2.30   
+  25   MOVE_0           JumpBox        → Gateway            -2.30   
+  26   MOVE_2           Gateway        → JumpBox            -2.30   
+  27   MOVE_0           JumpBox        → Gateway            -2.30   
+  28   MOVE_2           Gateway        → JumpBox            -2.30   
+  29   MOVE_0           JumpBox        → Gateway            -7.30 ⚠️
+  30   MOVE_2           Gateway        → JumpBox            -2.30   
+  31   MOVE_0           JumpBox        → Gateway            -2.30   
+  32   MOVE_2           Gateway        → JumpBox            -2.30   
+  33   MOVE_0           JumpBox        → Gateway            -2.30   
+  34   MOVE_2           Gateway        → JumpBox            -2.30   
+  35   MOVE_0           JumpBox        → Gateway            -2.30   
+  36   MOVE_2           Gateway        → JumpBox            -2.30   
+  37   MOVE_0           JumpBox        → Gateway            -2.30   
+  38   MOVE_2           Gateway        → JumpBox            -2.30   
+  39   MOVE_0           JumpBox        → Gateway            -2.30   
+----------------------------------------------------------------------
+  总奖励: -81.00  |  步数: 40
+  被检测: 2 次  |  ❌ 未拿到 flag
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    🟢 👑 [RV] JumpBox        🏁
+    ⚪    [--] DC            
+
+[保存] best model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_v2.pt
+
+[3/3] 训练完成！演示结果如上。
+==========================================
+日志已保存到 logs/
+==========================================

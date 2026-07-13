@@ -1,0 +1,35 @@
+==========================================
+节点: anode16
+日期: Sat Jul 11 02:36:29 AM UTC 2026
+==========================================
+[设备] 使用 CPU 训练
+[Ep   50/800] reward=   3.00  avg100= -11.86  epsilon=0.905  buffer=427
+[Ep  100/800] reward=  -4.00  avg100= -11.03  epsilon=0.819  buffer=827
+[Ep  150/800] reward=   3.00  avg100= -12.61  epsilon=0.741  buffer=1333
+[Ep  200/800] reward= -13.00  avg100= -15.50  epsilon=0.670  buffer=1864
+[Ep  250/800] reward= -42.00  avg100= -17.09  epsilon=0.606  buffer=2452
+[Ep  300/800] reward=   3.00  avg100= -18.27  epsilon=0.548  buffer=3022
+[Ep  350/800] reward=  -2.00  avg100= -14.51  epsilon=0.496  buffer=3383
+[Ep  400/800] reward= -10.00  avg100= -11.39  epsilon=0.449  buffer=3830
+[Ep  450/800] reward= -70.00  avg100= -13.55  epsilon=0.406  buffer=4357
+[Ep  500/800] reward=   3.00  avg100= -12.45  epsilon=0.368  buffer=4764
+[Ep  550/800] reward=   3.00  avg100=  -5.50  epsilon=0.333  buffer=4964
+[Ep  600/800] reward=  -2.00  avg100=  -1.85  epsilon=0.301  buffer=5174
+[Ep  650/800] reward=  -7.00  avg100=  -1.71  epsilon=0.272  buffer=5350
+[Ep  700/800] reward=  -9.00  avg100=  -0.68  epsilon=0.246  buffer=5542
+[Ep  750/800] reward=   3.00  avg100=   0.00  epsilon=0.223  buffer=5720
+[Ep  800/800] reward=  -7.00  avg100=   0.02  epsilon=0.202  buffer=5890
+
+============================================================
+🎯 渗透路径演示
+============================================================
+  Internet             → DMZ-Web               reward= -1.00
+  DMZ-Web              → Internal-App          reward= -6.00  ⚠️  DETECTED! (累计 1 次)
+  Internal-App         → DB-Server             reward= +5.00  ⚠️  DETECTED! (累计 2 次)
+------------------------------------------------------------
+路径: Internet → DMZ-Web → Internal-App → DB-Server
+总奖励: -2.00  |  步数: 3  |  被检测: 2 次
+============================================================
+==========================================
+训练完成, 日志已保存到 logs/
+==========================================

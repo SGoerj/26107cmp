@@ -1,0 +1,70 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: 6node | 算法: ppo]
+==========================================
+节点: anode16
+日期: Sun Jul 12 05:48:52 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+  ✅ 配置加载 OK: 节点=6 state_dim=37 n_actions=13
+  (路径测试跳过: 6node 拓扑与默认不同)
+
+[2/3] 开始训练 (场景 6node, 算法 ppo)...
+[配置] configs/env_6node.yaml  | 节点=6 state_dim=37 n_actions=13 max_steps=50
+[设备] 使用 CPU 训练
+[动作数] 13  |  [状态维度] 37D
+[网络] ActorCritic: 37→128→64→(actor:13 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=62  avg=   7.42  flag%=87%  policy_loss=+0.204  value_loss=173.627  entropy=2.535
+[Rollout   5/60] steps=2000 eps=109  avg=  35.17  flag%=100%  policy_loss=+0.225  value_loss=114.327  entropy=1.466
+[Rollout  10/60] steps=2000 eps=92  avg=  31.89  flag%=100%  policy_loss=+0.258  value_loss=49.273  entropy=1.507
+[Rollout  15/60] steps=2000 eps=98  avg=  31.76  flag%=100%  policy_loss=+0.236  value_loss=51.263  entropy=1.670
+[Rollout  20/60] steps=2000 eps=116  avg=  36.58  flag%=100%  policy_loss=+0.304  value_loss=35.617  entropy=1.666
+[Rollout  25/60] steps=2000 eps=113  avg=  35.99  flag%=100%  policy_loss=+0.204  value_loss=20.663  entropy=1.205
+[Rollout  30/60] steps=2000 eps=114  avg=  37.22  flag%=100%  policy_loss=+0.212  value_loss=33.199  entropy=1.092
+[Rollout  35/60] steps=2000 eps=120  avg=  37.82  flag%=100%  policy_loss=+0.174  value_loss=15.485  entropy=0.863
+[Rollout  40/60] steps=2000 eps=118  avg=  38.39  flag%=100%  policy_loss=+0.174  value_loss=21.176  entropy=0.834
+[Rollout  45/60] steps=2000 eps=115  avg=  38.42  flag%=100%  policy_loss=+0.181  value_loss=22.331  entropy=0.865
+[Rollout  50/60] steps=2000 eps=112  avg=  36.93  flag%=100%  policy_loss=+0.178  value_loss=39.729  entropy=1.057
+[Rollout  55/60] steps=2000 eps=85  avg=  32.31  flag%=100%  policy_loss=+0.215  value_loss=47.594  entropy=1.410
+[Rollout  60/60] steps=2000 eps=88  avg=  31.78  flag%=99%  policy_loss=+0.199  value_loss=49.295  entropy=1.213
+
+======================================================================
+  🎯 攻击链演示 —— PPO 自主决策 (greedy)
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_2           Gateway        → JumpBox            +1.70
+  1    RECON            JumpDMZ        →                    +0.20
+  2    VULN_SCAN        JumpDMZ        →                    +0.20
+  3    EXPLOIT_CREDS    JumpDMZ        ✅ 攻陷                 +2.70
+  4    PRIVESC          JumpDMZ        →                    +4.70
+  5    MOVE_4           JumpDMZ        移动                   +1.70
+  6    RECON            PivotSrv       →                    +0.20
+  7    VULN_SCAN        PivotSrv       →                    +0.20
+  8    EXPLOIT_CREDS    PivotSrv       ✅ 攻陷                 +2.70
+  9    PRIVESC          PivotSrv       →                    +4.70
+  10   MOVE_5           PivotSrv       移动                   +1.70
+  11   RECON            DC             →                    +0.20
+  12   VULN_SCAN        DC             →                    +0.20
+  13   EXPLOIT_CVE      DC             ✅ 攻陷                 -2.30 ⚠️
+  14   PRIVESC          DC             ⚠️ 被检测               -0.30 ⚠️
+  15   EXFIL            DC             🏁 FLAG!             +19.70 ⚠️
+----------------------------------------------------------------------
+  总奖励: +38.20  |  步数: 16
+  被检测: 3 次  |  🏁 拿到 FLAG!
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    🟢 👑 [RV] JumpBox        🏁
+    ⚪    [--] DC            
+
+[保存] PPO model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_6node.pt
+
+[3/3] 训练完成！演示结果如上。
+==========================================
+日志已保存到 logs/
+==========================================

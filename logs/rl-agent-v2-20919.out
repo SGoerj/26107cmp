@@ -1,0 +1,163 @@
+==========================================
+  🔥 RL 自主攻击智能体 v2
+  算法: Double Dueling DQN
+==========================================
+节点: anode16
+日期: Sat Jul 11 01:10:38 PM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+============================================================
+测试 1: 安全路径攻击链
+============================================================
+   1. MOVE to VPN (node 2)              @ Gateway      r= +1.20  
+   2. RECON VPN                         @ VPN-Gateway  r= +0.20  
+   3. VULN_SCAN VPN                     @ VPN-Gateway  r= +0.20  
+   4. EXPLOIT_CREDS VPN                 @ VPN-Gateway  r= +2.70  
+   5. MOVE to JumpBox (4)               @ VPN-Gateway  r= +1.20  
+   6. RECON JumpBox                     @ JumpBox      r= +0.20  
+   7. VULN_SCAN JumpBox                 @ JumpBox      r= +0.20  
+   8. EXPLOIT_CREDS JumpBox             @ JumpBox      r= +2.70  
+   9. MOVE to DC (5)                    @ JumpBox      r= +1.20  
+  10. RECON DC                          @ DC           r= +0.20  
+  11. VULN_SCAN DC                      @ DC           r= +0.20  
+  12. EXPLOIT_CVE DC                    @ DC           r= -5.30  ⚠️ DETECTED
+  13. PRIVESC DC                        @ DC           r= -3.30  ⚠️ DETECTED
+  14. EXFIL DC 🏁                        @ DC           r=+11.70  ⚠️ DETECTED 🏁
+------------------------------------------------------------
+  ✅ 安全路径测试通过  总奖励=+13.30  步数=14  检测=3次
+
+============================================================
+测试 2: 快路径 (高检测) 攻击链
+============================================================
+   1. MOVE to Web (1)                   @ Gateway      r= +1.20  
+   2. RECON Web                         @ WebServer    r= +0.20  
+   3. VULN_SCAN Web                     @ WebServer    r= +0.20  
+   4. EXPLOIT_CVE Web                   @ WebServer    r= +2.70  
+   5. MOVE to DB (3)                    @ WebServer    r= +1.20  
+   6. RECON DB                          @ DB-Server    r= +0.20  
+   7. VULN_SCAN DB                      @ DB-Server    r= +0.20  
+   8. EXPLOIT_SQLI DB                   @ DB-Server    r= +2.70  
+   9. PRIVESC DB                        @ DB-Server    r= +4.70  
+  10. MOVE to DC (5)                    @ DB-Server    r= +1.20  
+  11. RECON DC                          @ DC           r= +0.20  
+  12. VULN_SCAN DC                      @ DC           r= +0.20  
+  13. EXPLOIT_CVE DC                    @ DC           r= -5.30  ⚠️ DETECTED
+  14. PRIVESC DC                        @ DC           r= +4.70  
+  15. EXFIL DC 🏁                        @ DC           r=+11.70  ⚠️ DETECTED 🏁
+------------------------------------------------------------
+  ✅ 快路径测试通过  总奖励=+26.00  步数=15  检测=2次
+
+============================================================
+测试 3: 无效动作拒绝
+============================================================
+  ✅ Gateway 上不能直接 EXFIL
+  ✅ 未 VULN_SCAN 不能 EXPLOIT
+  ✅ RECON 之后仍需 VULN_SCAN 才能 EXPLOIT
+  ✅ 非法动作惩罚: reward=-3.00
+------------------------------------------------------------
+  ✅ 前置条件检查全部通过
+
+============================================================
+测试 4: 状态向量维度
+============================================================
+  ✅ 状态向量: shape=(38,), dtype=float32
+  ✅ 初始: node=0=1, comp[0]=1
+  ✅ reset 后维度不变
+------------------------------------------------------------
+  ✅ 状态向量测试全部通过
+
+============================================================
+测试 5: 安全路径 vs 快路径检测对比 (各 200 次模拟)
+============================================================
+  安全路径 (VPN): 平均检测 = 2.54 次
+  快路径 (Web):   平均检测 = 3.19 次
+  安全路径少被检测 0.65 次 ← DQN 应该学会选这条
+  ✅ 安全路径确实检测更少
+------------------------------------------------------------
+  冒烟测试通过 ✅
+
+[2/3] 开始训练 (1500 episodes)...
+[设备] 使用 CPU 训练
+[动作数] 13  |  [状态维度] 38D
+[网络] Dueling Network: 38→128→64→(V:32→1 | A:32→13)
+[算法] Double DQN + Action Masking
+[Ep   100/1500] reward= -56.00  avg100= -27.85  ε=0.819  flag%=27%  det=5 ★
+[Ep   200/1500] reward= -36.00  avg100= -24.84  ε=0.670  flag%=24%  det=4 ★
+[Ep   300/1500] reward= -62.00  avg100= -35.49  ε=0.548  flag%=3%  det=4
+[Ep   400/1500] reward= -30.50  avg100= -45.31  ε=0.449  flag%=2%  det=2
+[Ep   500/1500] reward= -63.50  avg100= -48.19  ε=0.368  flag%=1%  det=7
+[Ep   600/1500] reward=  -1.50  avg100= -43.97  ε=0.301  flag%=0%  det=0
+[Ep   700/1500] reward= -28.50  avg100= -40.94  ε=0.246  flag%=1%  det=3
+[Ep   800/1500] reward= -21.00  avg100= -43.06  ε=0.202  flag%=0%  det=1
+[Ep   900/1500] reward= -65.00  avg100= -47.53  ε=0.165  flag%=0%  det=6
+[Ep  1000/1500] reward= -78.50  avg100= -50.71  ε=0.135  flag%=0%  det=7
+[Ep  1100/1500] reward= -60.00  avg100= -56.24  ε=0.111  flag%=0%  det=5
+[Ep  1200/1500] reward= -37.00  avg100= -56.94  ε=0.091  flag%=0%  det=2
+[Ep  1300/1500] reward= -52.00  avg100= -57.59  ε=0.074  flag%=0%  det=4
+[Ep  1400/1500] reward= -61.00  avg100= -58.93  ε=0.061  flag%=0%  det=5
+[Ep  1500/1500] reward= -23.00  avg100= -54.95  ε=0.050  flag%=0%  det=2
+
+======================================================================
+  🎯 攻击链演示 —— Double Dueling DQN 自主决策
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    PRIVESC          Gateway        →                    +4.70   
+  1    RECON            Gateway        →                    +0.20   
+  2    VULN_SCAN        Gateway        →                    +0.20   
+  3    MOVE_2           Gateway        → VPN-Gateway        +1.20   
+  4    MOVE_0           VPN-Gateway    → Gateway            -1.30   
+  5    MOVE_2           Gateway        → VPN-Gateway        -1.30   
+  6    MOVE_0           VPN-Gateway    → Gateway            -1.30   
+  7    MOVE_1           Gateway        → WebServer          +1.20   
+  8    MOVE_0           WebServer      → Gateway            -9.30 ⚠️
+  9    MOVE_1           Gateway        → WebServer          -1.30   
+  10   MOVE_3           WebServer      → DB-Server          +1.20   
+  11   RECON            DB-Server      →                    +0.20   
+  12   VULN_SCAN        DB-Server      →                    +0.20   
+  13   EXPLOIT_SQLI     DB-Server      ✅ 攻陷                 +2.70   
+  14   PRIVESC          DB-Server      →                    +4.70   
+  15   MOVE_1           DB-Server      → WebServer          -1.30   
+  16   MOVE_3           WebServer      → DB-Server          -1.30   
+  17   MOVE_1           DB-Server      → WebServer          -1.30   
+  18   MOVE_3           WebServer      → DB-Server          -1.30   
+  19   MOVE_1           DB-Server      → WebServer          -1.30   
+  20   MOVE_3           WebServer      → DB-Server          -1.30   
+  21   MOVE_1           DB-Server      → WebServer          -1.30   
+  22   MOVE_3           WebServer      → DB-Server          -9.30 ⚠️
+  23   MOVE_1           DB-Server      → WebServer          -1.30   
+  24   MOVE_3           WebServer      → DB-Server          -1.30   
+  25   MOVE_1           DB-Server      → WebServer          -1.30   
+  26   MOVE_3           WebServer      → DB-Server          -1.30   
+  27   MOVE_1           DB-Server      → WebServer          -1.30   
+  28   MOVE_3           WebServer      → DB-Server          -1.30   
+  29   MOVE_1           DB-Server      → WebServer          -1.30   
+  30   MOVE_3           WebServer      → DB-Server          -1.30   
+  31   MOVE_1           DB-Server      → WebServer          -1.30   
+  32   MOVE_3           WebServer      → DB-Server          -1.30   
+  33   MOVE_1           DB-Server      → WebServer          -1.30   
+  34   MOVE_3           WebServer      → DB-Server          -1.30   
+  35   MOVE_1           DB-Server      → WebServer          -1.30   
+  36   MOVE_3           WebServer      → DB-Server          -1.30   
+  37   MOVE_1           DB-Server      → WebServer          -1.30   
+  38   MOVE_3           WebServer      → DB-Server          -1.30   
+  39   MOVE_1           DB-Server      → WebServer          -1.30   
+----------------------------------------------------------------------
+  总奖励: -38.50  |  步数: 40
+  被检测: 2 次  |  ❌ 未拿到 flag
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    ⚪    [--] VPN-Gateway   
+    🟢 👑 [RV] DB-Server      🏁
+    ⚪    [--] JumpBox       
+    ⚪    [--] DC            
+
+[3/3] 训练完成！演示结果如上。
+==========================================
+日志已保存到 logs/
+==========================================
