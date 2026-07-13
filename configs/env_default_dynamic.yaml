@@ -1,0 +1,76 @@
+# ═══════════════════════════════════════════════════════════════════════
+# 攻防环境配置 —— 4 节点 + 动态检测 (规则式)
+# ═══════════════════════════════════════════════════════════════════════
+# 拓扑与 env_default.yaml 完全相同, 仅开启动态检测:
+# 节点检测率随被攻击行为升降, 模拟 IDS 告警升级 / SOC 警觉。
+# 智能体不可见检测率 (POMDP), 只能从检测惩罚奖励 (-5) 间接推断"这地方危险了"。
+#
+# 规则 (每节点独立维护 det_level, reset 时回到 base):
+#   攻击性动作 (EXPLOIT/PRIVESC/EXFIL)  → det_level += alpha_attack
+#   被检测到                             → det_level += alpha_detected (升级更快)
+#   每个 step (无论动作)                  → det_level -= alpha_decay (自然衰减)
+#   clip 到 [base, cap_high]
+#
+# 效果: 在一个节点上反复打 → 检测率飙升 → 越打越容易被抓。
+#       学会"打完就 MOVE 走"才有利。制造"快 vs 隐蔽"的权衡。
+# ═══════════════════════════════════════════════════════════════════════
+
+services: [ssh, http, db]
+vulns: [cve, creds, sqli]
+
+nodes:
+  - id: gateway
+    name: Gateway
+    services: [ssh, http]
+    vulns: []
+    detection: 0.05
+    has_flag: false
+    adj: [webserver, jumpbox]
+    entry: true
+
+  - id: webserver
+    name: WebServer
+    services: [http]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: jumpbox
+    name: JumpBox
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.15
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: dc
+    name: DC
+    services: [db]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: true
+    adj: [webserver, jumpbox]
+
+rewards:
+  step_cost: -0.3
+  recon: 0.5
+  vuln_scan: 0.5
+  exploit_success: 3.0
+  exploit_fail: -2.0
+  privesc: 5.0
+  exfil: 25.0
+  detection: -5.0
+  invalid: -3.0
+  explore_bonus: 2.0
+  revisit_penalty: -2.0
+
+max_steps: 40
+
+# 动态检测 (本配置的核心)
+dynamic_detection:
+  enabled: true
+  alpha_attack: 0.08       # 每次攻击性动作, 检测率 +0.08
+  alpha_detected: 0.15     # 每次被检测, 检测率 +0.15 (确认入侵, 升级快)
+  alpha_decay: 0.01        # 每个 step, 检测率 -0.01 (无新攻击则警觉回落)
+  cap_high: 0.95           # 检测率上限 (不可能 100% 被抓)

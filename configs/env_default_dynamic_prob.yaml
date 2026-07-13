@@ -1,0 +1,83 @@
+# ═══════════════════════════════════════════════════════════════════════
+# 攻防环境配置 —— 4 节点 + 动态检测 + 概率化漏洞利用
+# ═══════════════════════════════════════════════════════════════════════
+# = env_default_dynamic.yaml + 概率化利用。
+# 三个真实维度叠加: POMDP(不可见检测) + 动态检测(打了就警觉) + 概率利用(会失败)。
+#
+# 概率化利用: EXPLOIT 不再 100% 成功, 按成功率随机判定。
+#   - 失败不攻陷节点, 给 exploit_fail 惩罚 (-2.0)
+#   - 失败仍触发检测判定 (攻击行为本身暴露)
+#   - 智能体可重试同一个 EXPLOIT, 或换路放弃该节点
+#   - 与动态检测叠加: 反复重试会推高该节点检测率, 张力更大
+# ═══════════════════════════════════════════════════════════════════════
+
+services: [ssh, http, db]
+vulns: [cve, creds, sqli]
+
+nodes:
+  - id: gateway
+    name: Gateway
+    services: [ssh, http]
+    vulns: []
+    detection: 0.05
+    has_flag: false
+    adj: [webserver, jumpbox]
+    entry: true
+
+  - id: webserver
+    name: WebServer
+    services: [http]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: jumpbox
+    name: JumpBox
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.15
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: dc
+    name: DC
+    services: [db]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: true
+    adj: [webserver, jumpbox]
+
+rewards:
+  step_cost: -0.3
+  recon: 0.5
+  vuln_scan: 0.5
+  exploit_success: 3.0
+  exploit_fail: -2.0
+  privesc: 5.0
+  exfil: 25.0
+  detection: -5.0
+  invalid: -3.0
+  explore_bonus: 2.0
+  revisit_penalty: -2.0
+
+max_steps: 40
+
+# 动态检测 (与 env_default_dynamic.yaml 一致)
+dynamic_detection:
+  enabled: true
+  alpha_attack: 0.08
+  alpha_detected: 0.15
+  alpha_decay: 0.01
+  cap_high: 0.95
+
+# 概率化漏洞利用
+# 成功率依据: 经验估计 (真实数据拟合见 GUIDE "参数依据与局限")
+#   cve   0.70: CVE 利用通常可行但非必成 (依赖目标环境配置)
+#   creds 0.85: 弱口令爆破成功率较高 (字典命中概率)
+#   sqli  0.60: SQL 注入依赖注入点与过滤, 成功率相对低
+exploit_success_prob:
+  enabled: true
+  cve: 0.70
+  creds: 0.85
+  sqli: 0.60

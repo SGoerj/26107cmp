@@ -1,0 +1,69 @@
+# ═══════════════════════════════════════════════════════════════════════
+# 攻防环境配置 —— 默认 4 节点拓扑
+# ═══════════════════════════════════════════════════════════════════════
+# 这个文件定义整个攻击环境: 网络拓扑、节点属性、检测率、漏洞、奖励。
+# 改这里就能换一个完全不同的攻防场景, 不用动代码。
+#
+# 真实部署时: 节点信息可从漏洞扫描报告 (Nessus/OpenVAS) 导出后填入,
+# 检测率可从 IDS 告警统计拟合 (某节点平均告警率 = detection)。
+# ═══════════════════════════════════════════════════════════════════════
+
+# 服务类型表 —— 决定 state 向量里 services 槽位的顺序
+# 索引按列表顺序: ssh=0, http=1, db=2
+services: [ssh, http, db]
+
+# 漏洞类型表 —— 决定 state 里 vulns 槽位顺序, 也决定哪个 EXPLOIT 动作对应哪种漏洞
+# cve -> EXPLOIT_CVE, creds -> EXPLOIT_CREDS, sqli -> EXPLOIT_SQLI
+vulns: [cve, creds, sqli]
+
+# 节点定义 —— 每个节点用 id 标识, 邻接用 id 引用 (不是数组下标, 改拓扑不会错位)
+nodes:
+  - id: gateway
+    name: Gateway           # 入口节点, 已 root (见 entry 字段)
+    services: [ssh, http]
+    vulns: []               # 无可利用漏洞 (已 root, 无需攻击)
+    detection: 0.05         # 检测率, 被动值, 真实环境来自 IDS 统计
+    has_flag: false
+    adj: [webserver, jumpbox]
+    entry: true             # 标记入口: reset 时该节点已 root+recon+vuln_scan
+
+  - id: webserver
+    name: WebServer
+    services: [http]
+    vulns: [cve]            # e.g. CVE-2021-41773 路径穿越
+    detection: 0.70         # 高检测, 但直达 DC (快路径)
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: jumpbox
+    name: JumpBox
+    services: [ssh]
+    vulns: [creds]          # 弱口令
+    detection: 0.15         # 低检测, 同样直达 DC (安全路径)
+    has_flag: false
+    adj: [gateway, dc]
+
+  - id: dc
+    name: DC
+    services: [db]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: true          # ★ flag 所在节点
+    adj: [webserver, jumpbox]
+
+# 奖励常量 —— 引导学习的信号。改这里调整智能体行为偏好。
+rewards:
+  step_cost: -0.3            # 每步消耗, 鼓励快速完成任务
+  recon: 0.5
+  vuln_scan: 0.5
+  exploit_success: 3.0
+  exploit_fail: -2.0
+  privesc: 5.0
+  exfil: 25.0               # 终极目标, 最高奖励
+  detection: -5.0           # 被检测惩罚
+  invalid: -3.0             # 无效动作 (前置条件不满足)
+  explore_bonus: 2.0        # 到达未访问节点的探索奖励
+  revisit_penalty: -2.0     # 回访已访问节点的惩罚 (防振荡)
+
+# 训练环境参数
+max_steps: 40               # 单 episode 最多步数, 超过则终止

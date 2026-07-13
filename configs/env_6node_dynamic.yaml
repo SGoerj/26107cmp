@@ -1,0 +1,96 @@
+# ═══════════════════════════════════════════════════════════════════════
+# 攻防环境配置 —— 6 节点双层拓扑 + 动态检测
+# ═══════════════════════════════════════════════════════════════════════
+# = env_6node.yaml 的拓扑 + env_default_dynamic.yaml 的动态检测。
+# 规模维度的收尾实验: 长路径 (约16步) + 动态风险叠加, 检验 PPO 极限。
+#
+# 拓扑:
+#              [0] Gateway (入口, 已 root)
+#              /          \
+#        [1] WebDMZ      [2] JumpDMZ      ← 第一层 (危险 vs 安全)
+#        (http,cve)      (ssh,creds)
+#            |              |
+#        [3] AppSrv       [4] PivotSrv    ← 第二层
+#        (db,sqli)        (ssh,creds)
+#            \              /
+#            [5] DC ★ (flag)
+#
+# 动态检测: 检测率随被攻击行为升降, 智能体不可见 (POMDP)。
+# 长路径下"打了就跑"更关键——在一个节点停留太久, 检测率飙升, 后续每步都可能被抓。
+# ═══════════════════════════════════════════════════════════════════════
+
+services: [ssh, http, db]
+vulns: [cve, creds, sqli]
+
+nodes:
+  - id: gateway
+    name: Gateway
+    services: [ssh, http]
+    vulns: []
+    detection: 0.05
+    has_flag: false
+    adj: [webdmz, jumpdmz]
+    entry: true
+
+  - id: webdmz
+    name: WebDMZ
+    services: [http]
+    vulns: [cve]
+    detection: 0.55           # 高检测, 左路 (快但危险)
+    has_flag: false
+    adj: [gateway, appsvr]
+
+  - id: jumpdmz
+    name: JumpDMZ
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.20           # 低检测, 右路 (安全)
+    has_flag: false
+    adj: [gateway, pivotsvr]
+
+  - id: appsvr
+    name: AppSrv
+    services: [db]
+    vulns: [sqli]
+    detection: 0.45
+    has_flag: false
+    adj: [webdmz, dc]
+
+  - id: pivotsvr
+    name: PivotSrv
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.18
+    has_flag: false
+    adj: [jumpdmz, dc]
+
+  - id: dc
+    name: DC
+    services: [db]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: true
+    adj: [appsvr, pivotsvr]
+
+rewards:
+  step_cost: -0.3
+  recon: 0.5
+  vuln_scan: 0.5
+  exploit_success: 3.0
+  exploit_fail: -2.0
+  privesc: 5.0
+  exfil: 25.0
+  detection: -5.0
+  invalid: -3.0
+  explore_bonus: 2.0
+  revisit_penalty: -2.0
+
+max_steps: 50
+
+# 动态检测 (与 4 节点动态版参数一致, 保证可比)
+dynamic_detection:
+  enabled: true
+  alpha_attack: 0.08
+  alpha_detected: 0.15
+  alpha_decay: 0.01
+  cap_high: 0.95

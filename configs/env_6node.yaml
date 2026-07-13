@@ -1,0 +1,88 @@
+# ═══════════════════════════════════════════════════════════════════════
+# 攻防环境配置 —— 6 节点双层拓扑
+# ═══════════════════════════════════════════════════════════════════════
+# 比 env_default.yaml 多一层中间节点, 路径从 10 步变约 14 步。
+# "选哪条路"的决策出现两次 (入口选 + 第二层), 早期决策后果延迟显现,
+# 对记忆的需求真实出现 (为 POMDP B 步 RNN 铺路)。
+#
+# 拓扑:
+#              [0] Gateway (入口, 已 root)
+#              /          \
+#        [1] WebDMZ      [2] JumpDMZ      ← 第一层选择 (危险 vs 安全)
+#        (http,cve)      (ssh,creds)
+#            |              |
+#        [3] AppSrv       [4] PivotSrv    ← 第二层 (新增)
+#        (db,sqli)        (ssh,creds)
+#            \              /
+#            [5] DC ★ (flag)              ← 汇合
+# ═══════════════════════════════════════════════════════════════════════
+
+services: [ssh, http, db]
+vulns: [cve, creds, sqli]
+
+nodes:
+  - id: gateway
+    name: Gateway
+    services: [ssh, http]
+    vulns: []
+    detection: 0.05
+    has_flag: false
+    adj: [webdmz, jumpdmz]
+    entry: true
+
+  - id: webdmz
+    name: WebDMZ
+    services: [http]
+    vulns: [cve]
+    detection: 0.55           # 高检测, 左路 (快但危险)
+    has_flag: false
+    adj: [gateway, appsvr]
+
+  - id: jumpdmz
+    name: JumpDMZ
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.20           # 低检测, 右路 (安全)
+    has_flag: false
+    adj: [gateway, pivotsvr]
+
+  - id: appsvr
+    name: AppSrv
+    services: [db]
+    vulns: [sqli]             # 用 sqli, 让 SQLI 动作有用武之地
+    detection: 0.45
+    has_flag: false
+    adj: [webdmz, dc]
+
+  - id: pivotsvr
+    name: PivotSrv
+    services: [ssh]
+    vulns: [creds]
+    detection: 0.18           # 右路第二层也保持低检测
+    has_flag: false
+    adj: [jumpdmz, dc]
+
+  - id: dc
+    name: DC
+    services: [db]
+    vulns: [cve]
+    detection: 0.70
+    has_flag: true
+    adj: [appsvr, pivotsvr]
+
+# 奖励沿用默认配置 (与 4 节点一致, 保证可比性)
+rewards:
+  step_cost: -0.3
+  recon: 0.5
+  vuln_scan: 0.5
+  exploit_success: 3.0
+  exploit_fail: -2.0
+  privesc: 5.0
+  exfil: 25.0
+  detection: -5.0
+  invalid: -3.0
+  explore_bonus: 2.0
+  revisit_penalty: -2.0
+
+# 路径变长 (约14步), 放宽步数上限
+max_steps: 50

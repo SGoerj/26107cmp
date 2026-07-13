@@ -1,0 +1,91 @@
+# 由 CIC-IDS2017 数据拟合 (见 src/fit_detection_from_cicids.py)
+# 节点 detection (AUC 排序): DC=0.15, WebServer=0.45, JumpBox=0.7
+# 动作乘数 (流量偏离度): recon=0.1, exploit=0.5, privesc=0.85
+# 利用率: cve=0.7(经验), creds=0.8, sqli=0.539
+
+action_detection_multiplier:
+  enabled: true
+  exfil: 1.0
+  exploit: 0.5
+  move: 0.25
+  privesc: 0.85
+  recon: 0.1
+  vuln_scan: 0.15
+dynamic_detection:
+  alpha_attack: 0.08
+  alpha_decay: 0.01
+  alpha_detected: 0.15
+  cap_high: 0.95
+  enabled: true
+exploit_success_prob:
+  creds: 0.8
+  cve: 0.7
+  enabled: true
+  sqli: 0.539
+max_steps: 40
+nodes:
+- adj:
+  - webserver
+  - jumpbox
+  detection: 0.05
+  entry: true
+  has_flag: false
+  id: gateway
+  name: Gateway
+  services:
+  - ssh
+  - http
+  vulns: []
+- adj:
+  - gateway
+  - dc
+  detection: 0.45
+  has_flag: false
+  id: webserver
+  name: WebServer
+  services:
+  - http
+  vulns:
+  - cve
+- adj:
+  - gateway
+  - dc
+  detection: 0.7
+  has_flag: false
+  id: jumpbox
+  name: JumpBox
+  services:
+  - ssh
+  vulns:
+  - creds
+- adj:
+  - webserver
+  - jumpbox
+  detection: 0.15
+  has_flag: true
+  id: dc
+  name: DC
+  services:
+  - db
+  vulns:
+  - cve
+rewards:
+  detection: -5.0
+  exfil: 25.0
+  exploit_fail: -2.0
+  exploit_success: 3.0
+  explore_bonus: 2.0
+  invalid: -3.0
+  privesc: 5.0
+  recon: 0.5
+  revisit_penalty: -2.0
+  step_cost: -0.3
+  vuln_scan: 0.5
+services:
+- ssh
+- http
+- db
+vulns:
+- cve
+- creds
+- sqli
