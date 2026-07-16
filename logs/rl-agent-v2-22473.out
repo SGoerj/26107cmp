@@ -1,0 +1,72 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: fitted | 算法: ppo]
+==========================================
+节点: anode17
+日期: Wed Jul 15 01:45:54 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+  ✅ 配置加载 OK: 节点=4 state_dim=27 n_actions=11
+  (路径测试跳过: fitted 拓扑与默认不同)
+
+[2/3] 开始训练 (场景 fitted, 算法 ppo)...
+[配置] configs/env_fitted.yaml  | 节点=4 state_dim=27 n_actions=11 max_steps=40
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/90] steps=2000 eps=99  avg=  15.63  flag%=98%  policy_loss=+0.207  value_loss=217.384  entropy=1.844
+[Rollout   5/90] steps=2000 eps=164  avg=  30.97  flag%=100%  policy_loss=+0.260  value_loss=143.118  entropy=1.056
+[Rollout  10/90] steps=2000 eps=166  avg=  31.44  flag%=100%  policy_loss=+0.132  value_loss=64.666  entropy=0.964
+[Rollout  15/90] steps=2000 eps=164  avg=  30.89  flag%=100%  policy_loss=+0.258  value_loss=31.715  entropy=0.747
+[Rollout  20/90] steps=2000 eps=163  avg=  30.37  flag%=100%  policy_loss=+0.201  value_loss=29.391  entropy=1.465
+[Rollout  25/90] steps=2000 eps=163  avg=  30.27  flag%=100%  policy_loss=+0.220  value_loss=21.514  entropy=1.215
+[Rollout  30/90] steps=2000 eps=156  avg=  29.38  flag%=100%  policy_loss=+0.229  value_loss=33.314  entropy=1.191
+[Rollout  35/90] steps=2000 eps=163  avg=  31.28  flag%=100%  policy_loss=+0.231  value_loss=21.349  entropy=0.973
+[Rollout  40/90] steps=2000 eps=170  avg=  30.83  flag%=100%  policy_loss=+0.190  value_loss=22.096  entropy=1.016
+[Rollout  45/90] steps=2000 eps=167  avg=  30.37  flag%=100%  policy_loss=+0.200  value_loss=24.330  entropy=0.916
+[Rollout  50/90] steps=2000 eps=168  avg=  31.01  flag%=100%  policy_loss=+0.295  value_loss=31.804  entropy=1.020
+[Rollout  55/90] steps=2000 eps=170  avg=  30.79  flag%=100%  policy_loss=+0.277  value_loss=23.189  entropy=0.933
+[Rollout  60/90] steps=2000 eps=172  avg=  31.76  flag%=100%  policy_loss=+0.201  value_loss=26.031  entropy=0.970
+[Rollout  65/90] steps=2000 eps=168  avg=  30.05  flag%=100%  policy_loss=+0.251  value_loss=28.141  entropy=0.882
+[Rollout  70/90] steps=2000 eps=167  avg=  29.79  flag%=100%  policy_loss=+0.195  value_loss=25.333  entropy=0.726
+[Rollout  75/90] steps=2000 eps=169  avg=  30.94  flag%=100%  policy_loss=+0.135  value_loss=22.260  entropy=0.752
+[Rollout  80/90] steps=2000 eps=172  avg=  30.95  flag%=100%  policy_loss=+0.063  value_loss=24.843  entropy=0.783
+[Rollout  85/90] steps=2000 eps=167  avg=  31.14  flag%=100%  policy_loss=+0.156  value_loss=25.848  entropy=0.753
+[Rollout  90/90] steps=2000 eps=170  avg=  32.00  flag%=100%  policy_loss=+0.087  value_loss=27.717  entropy=0.703
+
+======================================================================
+  🎯 攻击链演示 —— PPO 自主决策 (greedy)
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_1           Gateway        → WebServer          +1.70
+  1    RECON            WebServer      →                    +0.20
+  2    VULN_SCAN        WebServer      ⚠️ 被检测               -4.80 ⚠️
+  3    EXPLOIT_CVE      WebServer      ✅ 攻陷                 -2.30 ⚠️
+  4    PRIVESC          WebServer      →                    +4.70
+  5    MOVE_3           WebServer      → DC                 +1.70
+  6    RECON            DC             →                    +0.20
+  7    VULN_SCAN        DC             →                    +0.20
+  8    EXPLOIT_CVE      DC             ⚠️ 被检测               -7.30 ⚠️
+  9    EXPLOIT_CVE      DC             ✅ 攻陷                 -2.30 ⚠️
+  10   PRIVESC          DC             →                    +4.70
+  11   EXFIL            DC             🏁 FLAG!             +19.70 ⚠️
+----------------------------------------------------------------------
+  总奖励: +16.40  |  步数: 12
+  被检测: 5 次  |  🏁 拿到 FLAG!
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    🟢 👑 [RV] WebServer      🏁
+    ⚪    [--] JumpBox       
+    🟢 👑 [RV] DC             🏁
+
+[保存] PPO model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_fitted.pt
+
+[3/3] 完成。
+==========================================
+日志已保存到 logs/
+==========================================

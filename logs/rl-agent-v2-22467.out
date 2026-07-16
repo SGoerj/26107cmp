@@ -1,0 +1,121 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: default | 算法: ppo]
+==========================================
+节点: anode17
+日期: Wed Jul 15 01:39:18 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+============================================================
+测试 1: 安全路径攻击链 (Gateway → JumpBox → DC)
+============================================================
+   1. MOVE to JumpBox (2)               @ Gateway      r= +1.70
+   2. RECON JumpBox                     @ JumpBox      r= +0.20
+   3. VULN_SCAN JumpBox                 @ JumpBox      r= +0.20
+   4. EXPLOIT_CREDS JumpBox             @ JumpBox      r= +2.70
+   5. MOVE to DC (3)                    @ JumpBox      r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= +2.70
+   9. PRIVESC DC                        @ DC           r= -0.30  ⚠️ DETECTED
+  10. EXFIL DC 🏁                        @ DC           r=+19.70  ⚠️ DETECTED, 🏁
+------------------------------------------------------------
+  ✅ 安全路径测试通过  总奖励=+29.00  步数=10  检测=2次
+
+============================================================
+测试 2: 快路径攻击链 (Gateway → WebServer → DC)
+============================================================
+   1. MOVE to WebServer (1)             @ Gateway      r= +1.70
+   2. RECON Web                         @ WebServer    r= +0.20
+   3. VULN_SCAN Web                     @ WebServer    r= +0.20
+   4. EXPLOIT_CVE Web                   @ WebServer    r= +2.70
+   5. MOVE to DC (3)                    @ WebServer    r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= +2.70
+   9. PRIVESC DC                        @ DC           r= -0.30  ⚠️ DETECTED
+  10. EXFIL DC 🏁                        @ DC           r=+19.70  ⚠️ DETECTED, 🏁
+------------------------------------------------------------
+  ✅ 快路径测试通过  总奖励=+29.00  步数=10  检测=2次
+
+============================================================
+测试 3: 无效动作拒绝 + Gateway 防 farming
+============================================================
+  ✅ Gateway 已 root, PRIVESC 不合法 (防 farming)
+  ✅ Gateway 已 RECON, 不可重复扫描
+  ✅ Gateway 无 flag, EXFIL 不合法
+------------------------------------------------------------
+  ✅ 前置条件检查全部通过
+
+============================================================
+测试 4: 状态向量维度
+============================================================
+  ✅ 状态向量: shape=(27,)
+  ✅ Gateway 初始: cur=0, comp=1, recon=1, vuln=1, root=1
+------------------------------------------------------------
+  ✅ 状态向量测试全部通过
+
+============================================================
+测试 5: JumpBox vs WebServer 检测对比 (各 300 次)
+============================================================
+  JumpBox (安全): 平均检测 = 2.01 次
+  WebServer (快): 平均检测 = 2.61 次
+  安全路径少被检测 0.60 次
+  ✅ 安全路径确实检测更少
+------------------------------------------------------------
+  冒烟测试通过 ✅
+
+[2/3] 开始训练 (场景 default, 算法 ppo)...
+[配置] configs/env_default.yaml  | 节点=4 state_dim=27 n_actions=11 max_steps=40
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=95  avg=  11.80  flag%=95%  policy_loss=+0.232  value_loss=217.511  entropy=1.958
+[Rollout   5/60] steps=2000 eps=177  avg=  28.86  flag%=100%  policy_loss=+0.274  value_loss=90.097  entropy=1.457
+[Rollout  10/60] steps=2000 eps=170  avg=  30.65  flag%=100%  policy_loss=+0.251  value_loss=29.737  entropy=1.416
+[Rollout  15/60] steps=2000 eps=168  avg=  29.43  flag%=100%  policy_loss=+0.225  value_loss=25.958  entropy=1.657
+[Rollout  20/60] steps=2000 eps=150  avg=  27.80  flag%=100%  policy_loss=+0.290  value_loss=41.543  entropy=1.614
+[Rollout  25/60] steps=2000 eps=155  avg=  29.49  flag%=100%  policy_loss=+0.223  value_loss=31.323  entropy=1.436
+[Rollout  30/60] steps=2000 eps=176  avg=  31.42  flag%=100%  policy_loss=+0.159  value_loss=17.409  entropy=1.070
+[Rollout  35/60] steps=2000 eps=180  avg=  32.12  flag%=100%  policy_loss=+0.232  value_loss=15.229  entropy=0.791
+[Rollout  40/60] steps=2000 eps=181  avg=  32.71  flag%=100%  policy_loss=+0.102  value_loss=11.717  entropy=0.878
+[Rollout  45/60] steps=2000 eps=180  avg=  31.62  flag%=100%  policy_loss=+0.218  value_loss=12.855  entropy=0.851
+[Rollout  50/60] steps=2000 eps=180  avg=  32.67  flag%=100%  policy_loss=+0.237  value_loss=12.900  entropy=0.821
+[Rollout  55/60] steps=2000 eps=180  avg=  33.60  flag%=100%  policy_loss=+0.139  value_loss=12.425  entropy=0.810
+[Rollout  60/60] steps=2000 eps=180  avg=  32.69  flag%=100%  policy_loss=+0.216  value_loss=14.381  entropy=0.838
+
+======================================================================
+  🎯 攻击链演示 —— PPO 自主决策 (greedy)
+======================================================================
+  #    动作               所在节点           结果                      奖励
+----------------------------------------------------------------------
+  0    MOVE_2           Gateway        → JumpBox            +1.70
+  1    RECON            JumpBox        →                    +0.20
+  2    VULN_SCAN        JumpBox        →                    +0.20
+  3    EXPLOIT_CREDS    JumpBox        ✅ 攻陷                 +2.70
+  4    PRIVESC          JumpBox        ⚠️ 被检测               -0.30 ⚠️
+  5    MOVE_3           JumpBox        → DC                 +1.70
+  6    RECON            DC             ⚠️ 被检测               -4.80 ⚠️
+  7    VULN_SCAN        DC             →                    +0.20
+  8    EXPLOIT_CVE      DC             ✅ 攻陷                 +2.70
+  9    PRIVESC          DC             ⚠️ 被检测               -0.30 ⚠️
+  10   EXFIL            DC             🏁 FLAG!             +19.70 ⚠️
+----------------------------------------------------------------------
+  总奖励: +23.70  |  步数: 11
+  被检测: 4 次  |  🏁 拿到 FLAG!
+======================================================================
+
+  节点状态:
+    🟢 👑 [RV] Gateway        🏁
+    ⚪    [--] WebServer     
+    🟢 👑 [RV] JumpBox        🏁
+    🟢 👑 [RV] DC             🏁
+
+[保存] PPO model → /home/scc/pb25331925/projects/rl-attack-defense/models/best_default.pt
+
+[3/3] 完成。
+==========================================
+日志已保存到 logs/
+==========================================

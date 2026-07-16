@@ -1,0 +1,271 @@
+==========================================
+  🔥 RL 自主攻击智能体  [场景: default | 算法: dqn]
+==========================================
+节点: anode17
+日期: Wed Jul 15 01:47:15 AM UTC 2026
+Python: Python 3.14.6
+==========================================
+
+[1/3] 冒烟测试...
+============================================================
+测试 1: 安全路径攻击链 (Gateway → JumpBox → DC)
+============================================================
+   1. MOVE to JumpBox (2)               @ Gateway      r= +1.70
+   2. RECON JumpBox                     @ JumpBox      r= +0.20
+   3. VULN_SCAN JumpBox                 @ JumpBox      r= +0.20
+   4. EXPLOIT_CREDS JumpBox             @ JumpBox      r= +2.70
+   5. MOVE to DC (3)                    @ JumpBox      r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= +2.70
+   9. PRIVESC DC                        @ DC           r= -0.30  ⚠️ DETECTED
+  10. EXFIL DC 🏁                        @ DC           r=+24.70  🏁
+------------------------------------------------------------
+  ✅ 安全路径测试通过  总奖励=+34.00  步数=10  检测=1次
+
+============================================================
+测试 2: 快路径攻击链 (Gateway → WebServer → DC)
+============================================================
+   1. MOVE to WebServer (1)             @ Gateway      r= +1.70
+   2. RECON Web                         @ WebServer    r= +0.20
+   3. VULN_SCAN Web                     @ WebServer    r= +0.20
+   4. EXPLOIT_CVE Web                   @ WebServer    r= +2.70
+   5. MOVE to DC (3)                    @ WebServer    r= +1.70
+   6. RECON DC                          @ DC           r= +0.20
+   7. VULN_SCAN DC                      @ DC           r= +0.20
+   8. EXPLOIT_CVE DC                    @ DC           r= -2.30  ⚠️ DETECTED
+   9. PRIVESC DC                        @ DC           r= +4.70
+  10. EXFIL DC 🏁                        @ DC           r=+19.70  ⚠️ DETECTED, 🏁
+------------------------------------------------------------
+  ✅ 快路径测试通过  总奖励=+29.00  步数=10  检测=2次
+
+============================================================
+测试 3: 无效动作拒绝 + Gateway 防 farming
+============================================================
+  ✅ Gateway 已 root, PRIVESC 不合法 (防 farming)
+  ✅ Gateway 已 RECON, 不可重复扫描
+  ✅ Gateway 无 flag, EXFIL 不合法
+------------------------------------------------------------
+  ✅ 前置条件检查全部通过
+
+============================================================
+测试 4: 状态向量维度
+============================================================
+  ✅ 状态向量: shape=(27,)
+  ✅ Gateway 初始: cur=0, comp=1, recon=1, vuln=1, root=1
+------------------------------------------------------------
+  ✅ 状态向量测试全部通过
+
+============================================================
+测试 5: JumpBox vs WebServer 检测对比 (各 300 次)
+============================================================
+  JumpBox (安全): 平均检测 = 2.01 次
+  WebServer (快): 平均检测 = 2.51 次
+  安全路径少被检测 0.50 次
+  ✅ 安全路径确实检测更少
+------------------------------------------------------------
+  冒烟测试通过 ✅
+
+[2/3] 开始训练 (场景 default, 算法 dqn)...
+  敏感度分析模式: 9 组参数扰动 × 训练40rollout × 评估100ep
+==============================================================================
+  敏感度分析: 参数波动下 PPO 策略稳健性
+  基线: env_default_dynamic_prob.yaml (4节点+动态+概率利用)
+  每组: 3 种子 × 训练60rollout × 评估100ep, 取中位数
+==============================================================================
+
+[1/9] det×0.8  (所有节点检测率 ×0.8 (IDS 较弱))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=   3.78  flag%=91%  policy_loss=+0.255  value_loss=222.389  entropy=2.356
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   6.20  flag%=97%  policy_loss=+0.168  value_loss=172.707  entropy=2.165
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -0.65  flag%=92%  policy_loss=+0.227  value_loss=242.886  entropy=2.315
+  → 中位数: reward= +28.49 flag%=100 det=2.75 steps=11.6
+    3种子 flag%: [100/100/100]
+
+[2/9] det×1.0  (基线检测率)
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=   0.81  flag%=91%  policy_loss=+0.250  value_loss=217.426  entropy=2.284
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   2.96  flag%=97%  policy_loss=+0.205  value_loss=180.841  entropy=2.344
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -4.32  flag%=92%  policy_loss=+0.216  value_loss=245.642  entropy=2.219
+  → 中位数: reward= +27.09 flag%=100 det=3.01 steps=11.7
+    3种子 flag%: [100/100/100]
+
+[3/9] det×1.2  (所有节点检测率 ×1.2 (IDS 较强))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=  -1.50  flag%=91%  policy_loss=+0.250  value_loss=221.638  entropy=2.204
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   0.99  flag%=97%  policy_loss=+0.217  value_loss=187.818  entropy=2.362
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -6.70  flag%=92%  policy_loss=+0.215  value_loss=251.537  entropy=2.165
+  → 中位数: reward= +25.69 flag%=100 det=3.32 steps=11.6
+    3种子 flag%: [100/100/100]
+
+[4/9] cve=0.5  (利用率低 (利用更难成功))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=81  avg=  -9.50  flag%=84%  policy_loss=+0.253  value_loss=261.103  entropy=1.908
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=88  avg=  -2.60  flag%=91%  policy_loss=+0.248  value_loss=222.305  entropy=2.331
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=82  avg= -11.75  flag%=91%  policy_loss=+0.163  value_loss=257.956  entropy=2.047
+  → 中位数: reward= +19.47 flag%=100 det=3.16 steps=11.7
+    3种子 flag%: [100/100/100]
+
+[5/9] cve=0.7  (基线利用率)
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=   0.81  flag%=91%  policy_loss=+0.250  value_loss=217.426  entropy=2.284
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   2.96  flag%=97%  policy_loss=+0.205  value_loss=180.841  entropy=2.344
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -4.32  flag%=92%  policy_loss=+0.216  value_loss=245.642  entropy=2.219
+  → 中位数: reward= +27.09 flag%=100 det=3.01 steps=11.7
+    3种子 flag%: [100/100/100]
+
+[6/9] cve=0.9  (利用率高 (利用易成功))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=90  avg=   3.79  flag%=93%  policy_loss=+0.279  value_loss=203.635  entropy=2.362
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=97  avg=   6.44  flag%=96%  policy_loss=+0.273  value_loss=214.058  entropy=2.165
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=79  avg=  -9.36  flag%=86%  policy_loss=+0.228  value_loss=279.774  entropy=2.112
+  → 中位数: reward= +28.98 flag%=100 det=2.87 steps=11.2
+    3种子 flag%: [100/100/100]
+
+[7/9] α=0.04  (告警升级慢 (动态弱))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=   1.87  flag%=91%  policy_loss=+0.258  value_loss=222.043  entropy=2.315
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   4.18  flag%=97%  policy_loss=+0.185  value_loss=167.476  entropy=2.284
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -3.15  flag%=92%  policy_loss=+0.216  value_loss=238.638  entropy=2.256
+  → 中位数: reward= +27.83 flag%=100 det=2.88 steps=11.6
+    3种子 flag%: [100/100/100]
+
+[8/9] α=0.08  (基线 α_attack)
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=   0.81  flag%=91%  policy_loss=+0.250  value_loss=217.426  entropy=2.284
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   2.96  flag%=97%  policy_loss=+0.205  value_loss=180.841  entropy=2.344
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -4.32  flag%=92%  policy_loss=+0.216  value_loss=245.642  entropy=2.219
+  → 中位数: reward= +27.09 flag%=100 det=3.01 steps=11.7
+    3种子 flag%: [100/100/100]
+
+[9/9] α=0.12  (告警升级快 (动态强))
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=89  avg=  -0.09  flag%=91%  policy_loss=+0.248  value_loss=221.461  entropy=2.248
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=94  avg=   2.00  flag%=97%  policy_loss=+0.210  value_loss=182.549  entropy=2.357
+[设备] 使用 CPU 训练
+[动作数] 11  |  [状态维度] 27D
+[网络] ActorCritic: 27→128→64→(actor:11 | critic:1)
+[算法] PPO + Action Masking (on-policy, 不遗忘)
+[Rollout   1/60] steps=2000 eps=86  avg=  -5.36  flag%=92%  policy_loss=+0.217  value_loss=253.961  entropy=2.192
+  → 中位数: reward= +26.06 flag%=100 det=3.23 steps=11.6
+    3种子 flag%: [100/100/100]
+
+==============================================================================
+  汇总 (3 种子中位数)
+==============================================================================
+  实验            reward   flag%    det   steps  3种子flag%        
+------------------------------------------------------------------------------
+  det×0.8       +28.49    100%   2.75    11.6  [100/100/100]
+  det×1.0       +27.09    100%   3.01    11.7  [100/100/100]
+  det×1.2       +25.69    100%   3.32    11.6  [100/100/100]
+  cve=0.5       +19.47    100%   3.16    11.7  [100/100/100]
+  cve=0.7       +27.09    100%   3.01    11.7  [100/100/100]
+  cve=0.9       +28.98    100%   2.87    11.2  [100/100/100]
+  α=0.04        +27.83    100%   2.88    11.6  [100/100/100]
+  α=0.08        +27.09    100%   3.01    11.7  [100/100/100]
+  α=0.12        +26.06    100%   3.23    11.6  [100/100/100]
+==============================================================================
+
+  稳健性判断:
+    flag% 中位数范围: 100% ~ 100%
+    → 策略对参数波动 ROBUST (所有配置 flag% 中位数 ≥ 90%), 参数不精确问题可接受
+
+[3/3] 完成。
+==========================================
+日志已保存到 logs/
+==========================================
