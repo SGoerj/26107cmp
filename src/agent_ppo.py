@@ -67,9 +67,22 @@ class ActorCritic(nn.Module):
 
     def forward(self, x: torch.Tensor):
         feat = self.feature(x)
-        logits = self.actor(feat)            # (B, n_actions)
-        value = self.critic(feat).squeeze(-1)  # (B,)
+        logits = self.actor(feat)
+        value = self.critic(feat).squeeze(-1)
         return logits, value
+
+    def evaluate(self, states, actions, legal_masks):
+        """PPO 更新用: 在合法动作上算 log_prob 和 entropy。
+        legal_masks: [B, n_actions] bool, True=合法。
+        """
+        logits, values = self.forward(states)
+        mask = torch.full_like(logits, float("-inf"))
+        mask[legal_masks] = 0.0
+        masked = logits + mask
+        dist = torch.distributions.Categorical(logits=masked)
+        log_probs = dist.log_prob(actions)
+        entropy = dist.entropy().mean()
+        return log_probs, values, entropy
 
     def get_action(self, x: torch.Tensor, legal: list[int]):
         """采样一个动作 (带 mask)。返回 (action, log_prob, value)。"""
@@ -92,10 +105,11 @@ class ActorCritic(nn.Module):
 class Rollout:
     states: list           # list[np.ndarray]
     actions: list          # list[int]
-    log_probs: list        # list[float]  当前策略采样时的 log π(a|s)
+    log_probs: list        # list[float]
     rewards: list          # list[float]
-    values: list           # list[float]  critic 估的 V(s)
+    values: list           # list[float]
     dones: list            # list[bool]
+    legals: list           # list[list[int]]  每个状态的合法动作列表 (供evaluate用)
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -159,7 +173,7 @@ def train(
     all_flags: list[int] = []
 
     for rollout_idx in range(1, rollouts + 1):
-        rb = Rollout([], [], [], [], [], [])
+        rb = Rollout([], [], [], [], [], [], [])
         step_count = 0
         ep_in_rollout = 0
 
@@ -190,6 +204,7 @@ def train(
             rb.rewards.append(reward)
             rb.values.append(value)
             rb.dones.append(done)
+            rb.legals.append(legal)  # 记录合法动作 (供 PPO 更新时 mask)
 
             ep_reward += reward
             if info.get("flag_captured"):
@@ -232,17 +247,15 @@ def train(
                 end = start + batch_size
                 mb = idx[start:end]
 
-                logits, values = ac(states_t[mb])
-                # action mask: 重建每个样本的合法动作 (从 states 无法直接拿,
-                # 这里用旧 log_prob 对应的动作一定合法, 但更新时需对全部 logits mask)
-                # 简化: PPO 更新时对所有动作算 log_prob, 旧策略已保证只采合法动作,
-                # 新策略通过训练自然学到非法动作低概率 (env 的 -inf 惩罚已塑形)。
-                # 为严格, 这里仍对非法动作 logits mask —— 用 env 逐状态重建。
-                # (成本较高, 此处采近似: 不 mask, 依赖奖励塑形。如训练不稳再加。)
-                dist = Categorical(logits=logits)
+                # 构造 batch legal mask
                 mb_actions = actions_t[mb]
-                new_log_probs = dist.log_prob(mb_actions)
-                entropy = dist.entropy().mean()
+                batch_legals = [rb.legals[i] for i in mb.tolist()]
+                leg_mask = torch.zeros(len(mb), n_actions, dtype=torch.bool, device=device)
+                for j, leg in enumerate(batch_legals):
+                    for a in leg:
+                        leg_mask[j, a] = True
+
+                new_log_probs, values, entropy = ac.evaluate(states_t[mb], mb_actions, leg_mask)
 
                 # PPO clip surrogate
                 ratio = torch.exp(new_log_probs - old_log_probs_t[mb])
@@ -321,7 +334,7 @@ def demonstrate(env: AttackChainEnv, ac: ActorCritic, max_steps: int = 50):
         elif compromised:
             result = "✅ 攻陷"
         elif action_name.startswith("MOVE"):
-            result = f"→ {NODE_NAMES[action - 7]}" if action - 7 < N_NODES else "移动"
+            result = f"→ {NODE_NAMES[action - MOVE_BASE]}" if action - MOVE_BASE < N_NODES else "移动"
         elif info.get("invalid"):
             result = "❌ 非法"
         elif detected:
