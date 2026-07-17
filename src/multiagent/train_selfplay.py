@@ -41,9 +41,10 @@ from agent_ppo import ActorCritic, compute_gae
 # ──────────────────────────────────────────────────────────────────────
 # PPO 更新 (红/蓝通用, 各自网络/数据)
 # ──────────────────────────────────────────────────────────────────────
-def ppo_update(ac, optimizer, states, actions, old_log_probs, advs, rets,
+def ppo_update(ac, optimizer, states, actions, old_log_probs, advs, rets, legals,
                update_epochs=10, batch_size=256, clip_ratio=0.2,
-               value_coef=0.5, entropy_coef=0.01, max_grad_norm=0.5):
+               value_coef=0.5, entropy_coef=0.01, max_grad_norm=0.5,
+               n_actions=None):
     device = next(ac.parameters()).device
     S = torch.tensor(np.stack(states)).float().to(device)
     A = torch.tensor(actions).to(device)
@@ -59,10 +60,11 @@ def ppo_update(ac, optimizer, states, actions, old_log_probs, advs, rets,
         idx = torch.randperm(n)
         for s in range(0, n, batch_size):
             mb = idx[s:s+batch_size]
-            logits, vals = ac(S[mb])
-            dist = Categorical(logits=logits)
-            new_lp = dist.log_prob(A[mb])
-            ent = dist.entropy().mean()
+            leg_mask = torch.zeros(len(mb), n_actions, dtype=torch.bool, device=device)
+            for j, i in enumerate(mb.tolist()):
+                for a in legals[i]:
+                    leg_mask[j, a] = True
+            new_lp, vals, ent = ac.evaluate(S[mb], A[mb], leg_mask)
             ratio = torch.exp(new_lp - old_lp[mb])
             s1 = ratio * adv_t[mb]
             s2 = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * adv_t[mb]
@@ -81,7 +83,7 @@ def collect_rollout(env, ac, opponent_action_fn, is_red_training,
     opponent_action_fn: 对手动作函数 (传 env + legal, 返回动作)。
     """
     device = next(ac.parameters()).device
-    states, actions, log_probs, rewards, values, dones = [], [], [], [], [], []
+    states, actions, log_probs, rewards, values, dones, legals = [], [], [], [], [], [], []
     ep_rewards, ep_flags = [], []
     step_count, ep_r, ep_flag = 0, 0.0, 0
     rs, bs = env.reset()
@@ -99,8 +101,8 @@ def collect_rollout(env, ac, opponent_action_fn, is_red_training,
             with torch.no_grad():
                 red_a, red_lp, red_v = ac.get_action(st, red_legal)
             blue_a = opponent_action_fn(env, env.blue_legal_actions())
-            states.append(rs); actions.append(red_a); log_probs.append(red_lp)
-            values.append(red_v)
+            states.append(rs.copy()); actions.append(red_a); log_probs.append(red_lp)
+            values.append(red_v); legals.append(red_legal)
             rs, bs, rr, br, done, info = env.step(red_a, blue_a)
             rewards.append(rr); dones.append(done)
             ep_r += rr
@@ -113,8 +115,8 @@ def collect_rollout(env, ac, opponent_action_fn, is_red_training,
             with torch.no_grad():
                 blue_a, blue_lp, blue_v = ac.get_action(st, blue_legal)
             red_a = opponent_action_fn(env, red_legal)
-            states.append(bs); actions.append(blue_a); log_probs.append(blue_lp)
-            values.append(blue_v)
+            states.append(bs.copy()); actions.append(blue_a); log_probs.append(blue_lp)
+            values.append(blue_v); legals.append(blue_legal)
             rs, bs, rr, br, done, info = env.step(red_a, blue_a)
             rewards.append(br); dones.append(done)
             ep_r += br
@@ -132,7 +134,7 @@ def collect_rollout(env, ac, opponent_action_fn, is_red_training,
         st = torch.from_numpy(last_state).float().to(device)
         _, last_v = ac(st.unsqueeze(0)); last_v = last_v.item()
     advs, rets = compute_gae(rewards, values, dones, last_v, gamma, gae_lambda)
-    return states, actions, log_probs, advs, rets, ep_rewards, ep_flags
+    return states, actions, log_probs, advs, rets, legals, ep_rewards, ep_flags
 
 
 # ──────────────────────────────────────────────────────────────────────
@@ -160,7 +162,7 @@ class SnapshotPool:
 # Self-play 主循环
 # ──────────────────────────────────────────────────────────────────────
 def train_selfplay(env, rounds=20, rollout_steps=2000, lr=3e-4,
-                   pool_size=5, seed=None, print_every=1):
+                   pool_size=5, seed=None, print_every=1, entropy_coef=0.05):
     if seed is not None:
         _r.seed(seed); np.random.seed(seed); torch.manual_seed(seed)
 
@@ -172,6 +174,9 @@ def train_selfplay(env, rounds=20, rollout_steps=2000, lr=3e-4,
 
     red_pool = SnapshotPool(pool_size)
     blue_pool = SnapshotPool(pool_size)
+    # 初始快照: 存初始随机权重, 避免 Round 1 空池导致对手=随机弱网络
+    red_pool.add(red_ac.state_dict())
+    blue_pool.add(blue_ac.state_dict())
 
     # 对手动作函数: 用快照网络采样
     def make_opponent_fn(opponent_ac, is_opponent_red):
@@ -196,10 +201,11 @@ def train_selfplay(env, rounds=20, rollout_steps=2000, lr=3e-4,
         opponent_blue = ActorCritic(env.blue_state_dim, env.n_blue_actions).to(device)
         blue_pool.sample_into(opponent_blue)
         opp_fn = make_opponent_fn(opponent_blue, is_opponent_red=False)
-        S, A, LP, ADV, RET, ep_r, ep_f = collect_rollout(
+        S, A, LP, ADV, RET, LEG, ep_r, ep_f = collect_rollout(
             env, red_ac, opp_fn, is_red_training=True, rollout_steps=rollout_steps)
         if len(S) > 0:
-            ppo_update(red_ac, red_opt, S, A, LP, ADV, RET)
+            ppo_update(red_ac, red_opt, S, A, LP, ADV, RET, LEG, n_actions=env.n_red_actions,
+                       entropy_coef=entropy_coef)
         red_flag_pct = sum(ep_f) / len(ep_f) * 100 if ep_f else 0
         red_avg = sum(ep_r) / len(ep_r) if ep_r else 0
         red_pool.add(red_ac.state_dict())
@@ -208,10 +214,11 @@ def train_selfplay(env, rounds=20, rollout_steps=2000, lr=3e-4,
         opponent_red = ActorCritic(env.red_state_dim, env.n_red_actions).to(device)
         red_pool.sample_into(opponent_red)
         opp_fn = make_opponent_fn(opponent_red, is_opponent_red=True)
-        S, A, LP, ADV, RET, ep_r, ep_f = collect_rollout(
+        S, A, LP, ADV, RET, LEG, ep_r, ep_f = collect_rollout(
             env, blue_ac, opp_fn, is_red_training=False, rollout_steps=rollout_steps)
         if len(S) > 0:
-            ppo_update(blue_ac, blue_opt, S, A, LP, ADV, RET)
+            ppo_update(blue_ac, blue_opt, S, A, LP, ADV, RET, LEG, n_actions=env.n_blue_actions,
+                       entropy_coef=entropy_coef)
         blue_avg = sum(ep_r) / len(ep_r) if ep_r else 0
         blue_pool.add(blue_ac.state_dict())
 
@@ -234,12 +241,14 @@ if __name__ == "__main__":
     ap.add_argument("--rollout-steps", type=int, default=2000)
     ap.add_argument("--pool-size", type=int, default=5)
     ap.add_argument("--seed", type=int, default=0)
+    ap.add_argument("--entropy", type=float, default=0.05)
     args = ap.parse_args()
 
     env = MultiAgentAttackEnv(config_path=args.config)
     red_ac, blue_ac = train_selfplay(env, rounds=args.rounds,
                                      rollout_steps=args.rollout_steps,
-                                     pool_size=args.pool_size, seed=args.seed)
+                                     pool_size=args.pool_size, seed=args.seed,
+                                     entropy_coef=args.entropy)
 
     model_dir = os.path.join(os.path.dirname(__file__), "..", "..", "models")
     os.makedirs(model_dir, exist_ok=True)

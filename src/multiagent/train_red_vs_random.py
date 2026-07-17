@@ -53,7 +53,7 @@ def train_red_vs_random(env, rollouts=60, rollout_steps=2000, update_epochs=10,
 
     for ro in range(1, rollouts + 1):
         # 收集 rollout
-        states, actions, log_probs, rewards, values, dones = [], [], [], [], [], []
+        states, actions, log_probs, rewards, values, dones, legals = [], [], [], [], [], [], []
         step_count, ep_in_ro, ep_r, ep_flag = 0, 0, 0.0, 0
         rs, bs = env.reset()
         while step_count < rollout_steps:
@@ -68,9 +68,10 @@ def train_red_vs_random(env, rollouts=60, rollout_steps=2000, update_epochs=10,
                 a, lp, v = ac.get_action(st, red_legal)
             blue_legal = env.blue_legal_actions()
             ba = random_blue_action(env, blue_legal)
+            states.append(rs.copy()); actions.append(a); log_probs.append(lp); values.append(v)
+            legals.append(red_legal)  # PPO mask 用
             rs, bs, rr, br, done, info = env.step(a, ba)
-            states.append(rs); actions.append(a); log_probs.append(lp)
-            rewards.append(rr); values.append(v); dones.append(done)
+            rewards.append(rr); dones.append(done)
             ep_r += rr
             if info.get("flag_captured"):
                 ep_flag = 1
@@ -95,14 +96,17 @@ def train_red_vs_random(env, rollouts=60, rollout_steps=2000, update_epochs=10,
         n = len(states)
 
         from torch.distributions import Categorical
+        n_actions = env.n_red_actions
         for _ in range(update_epochs):
             idx = torch.randperm(n)
             for s in range(0, n, batch_size):
                 mb = idx[s:s+batch_size]
-                logits, vals = ac(S[mb])
-                dist = Categorical(logits=logits)
-                new_lp = dist.log_prob(A[mb])
-                ent = dist.entropy().mean()
+                # P0 fix: 用 evaluate(mask) 替代裸 Categorical(logits)
+                leg_mask = torch.zeros(len(mb), n_actions, dtype=torch.bool, device=device)
+                for j, i in enumerate(mb.tolist()):
+                    for a in legals[i]:
+                        leg_mask[j, a] = True
+                new_lp, vals, ent = ac.evaluate(S[mb], A[mb], leg_mask)
                 ratio = torch.exp(new_lp - old_lp[mb])
                 s1 = ratio * adv_t[mb]
                 s2 = torch.clamp(ratio, 1-clip_ratio, 1+clip_ratio) * adv_t[mb]

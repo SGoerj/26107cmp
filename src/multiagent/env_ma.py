@@ -31,7 +31,6 @@ from env_v2 import (
 # ──────────────────────────────────────────────────────────────────────
 BLUE_MONITOR = 0
 BLUE_HARDEN_BASE = 1      # HARDEN_<node> = BLUE_HARDEN_BASE + node
-BLUE_ISOLATE_BASE = None  # 初始化时按 N 设 (ISOLATE_<node> = BLUE_ISOLATE_BASE + node)
 
 
 def blue_action_names(n_nodes: int) -> list[str]:
@@ -94,8 +93,7 @@ class MultiAgentAttackEnv:
         self.n_red_actions = 7 + self.n_nodes      # 红队动作数 (同单智能体)
         self.n_blue_actions = n_blue_actions(self.n_nodes)
         self.blue_action_names = blue_action_names(self.n_nodes)
-        global BLUE_ISOLATE_BASE
-        BLUE_ISOLATE_BASE = 1 + self.n_nodes       # ISOLATE 起始编号
+        self.blue_isolate_base = 1 + self.n_nodes   # ISOLATE 起始编号 (实例属性)
 
         # 状态维度
         self.red_state_dim = self._compute_red_state_dim()
@@ -193,11 +191,11 @@ class MultiAgentAttackEnv:
 
         node = None
         is_isolate = False
-        if BLUE_HARDEN_BASE <= action < BLUE_ISOLATE_BASE:
+        if BLUE_HARDEN_BASE <= action < self.blue_isolate_base:
             node = action - BLUE_HARDEN_BASE
             is_isolate = False
-        elif action >= BLUE_ISOLATE_BASE:
-            node = action - BLUE_ISOLATE_BASE
+        elif action >= self.blue_isolate_base:
+            node = action - self.blue_isolate_base
             is_isolate = True
 
         if node is None or node >= self.n_nodes:
@@ -272,7 +270,7 @@ class MultiAgentAttackEnv:
                     legal.append(BLUE_HARDEN_BASE + i)
             for i in range(self.n_nodes):
                 if not self.isolated[i]:
-                    legal.append(BLUE_ISOLATE_BASE + i)
+                    legal.append(self.blue_isolate_base + i)
         return legal
 
     def _exec_red(self, action: int, info: dict):
@@ -403,10 +401,9 @@ class MultiAgentAttackEnv:
         N = self.n_nodes
         s = np.zeros(self.blue_state_dim, dtype=np.float32)
         off = 0
-        # 告警计数归一化
-        max_alert = max(max(self.alerts), 1)
+        # 告警计数 (固定阈值归一化, 避免极值压缩信息)
         for i in range(N):
-            s[off + i] = self.alerts[i] / max_alert
+            s[off + i] = min(self.alerts[i] / 5.0, 1.0)
         off += N
         # 探测痕迹归一化 (红队 RECON/VULN_SCAN 留下, 比告警更前瞻)
         max_probe = max(max(self.probe_traces), 1)
