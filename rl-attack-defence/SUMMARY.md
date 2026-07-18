@@ -38,8 +38,11 @@
 ### 阶段 8：真实 IDS 验证（代理指标的局限）
 用 Suricata + 社区规则回放 CIC-IDS2017 原始 PCAP，验证 AUC 代理是否等于真实 IDS 检测。**负面但重要的发现**：三个节点 AUC 都 0.96-0.99，但真实 IDS 对 SSH 爆破、Web 攻击（72 个 SQLi 请求）**全部 0 检出**。证明 AUC 代理系统性高估真实检测能力——AUC 是"离线 78 特征可分性"，真实 IDS 靠"规则匹配"非 ML 分类，加密协议尤其失真。这定义了"数据驱动"的诚实边界：项目做的是"数据驱动代理 detection"，真实 IDS detection 需订阅规则或主机日志，超出当前条件。敏感度分析（策略对 detection robust）的意义反而被强化——策略本就不该依赖 detection 精确值。
 
-### 阶段 9：蓝队对抗（self-play 边界探索）
-尝试双智能体——引入蓝队防御智能体，通过 self-play（交替训练 + 对手快照池）让红蓝双方同时学习。设计四层兜底验证：随机蓝队→规则蓝队→self-play（调奖励）→self-play（加预测观测）。三轮 self-play 实验均收敛到蓝队不防御、红队 100%。**根因不是奖励或观测**（调过没用），而是 self-play 的非平稳性——蓝队在追移动靶，学不到一致策略。这是诚实的负面发现，定义了当前方法论的边界：self-play 在不完美信息 + 非零和下，蓝队学不到主动防御。解决需虚拟博弈/种群训练等专门博弈算法，超出当前条件。代码保留在 `src/multiagent/`，不影响单智能体基线。
+### 阶段 9：蓝队对抗（self-play 边界探索，7轮实验）
+尝试双智能体——引入蓝队防御智能体，通过 self-play（交替训练 + 对手快照池）让红蓝双方同时学习。设计四层兜底验证：随机蓝队→规则蓝队→self-play（调奖励）→self-play（加预测观测）→self-play（高entropy）→self-play（GRU记忆）。**五种完全不同的修复方向，block% 全部 0%、红队 100%**。根因不是任何单一维度（bug/奖励/观测/entropy/记忆），而是攻防不对称的物理结构：红队全信息 vs 蓝队半信息 + 告警滞后 + 红队快速攻击链 + 无反超机制。代码保留在 `src/multiagent/`，不影响单智能体基线。
+
+### 阶段 10：控制博弈（多智能体突破，30轮实验）
+红蓝对抗和 CTF 都失败后，新设计了控制博弈——双方争夺节点控制权，有反超机制。从 self-play 到 Population+NFSP+FP 三位一体，从同质到异构到 POMDP+GRU，30 轮实验系统性测量了 RL 多智能体博弈边界。**控制博弈 v1（同质）+ 采样评估 + 200 轮训练产生了四度易手的螺旋博弈**。元博弈分析证明四环境策略全部收敛到纳什均衡（可利用度=0）。五维度框架：游戏结构、信息结构、策略熵、博弈对称性、部分可观测。完整分析见 `control-game/MULTIAGENT_FINDINGS.md`。
 
 ## 核心能力
 
@@ -71,15 +74,21 @@ Gateway → JumpDMZ (侦察/扫漏/利用creds/提权) → 立即走
 ## 文件结构
 
 ```
-configs/        环境配置 (YAML): env_default / env_6node / env_default_dynamic / env_6node_dynamic / env_default_dynamic_prob
+configs/        环境配置 (YAML): env_default / env_6node / env_default_dynamic / env_6node_dynamic / env_default_dynamic_prob / env_fitted
 src/
   env_v2.py     攻击链环境 (动态检测 + 概率利用 + POMDP)
   agent_v2.py   DQN 智能体 (对比基线)
   agent_ppo.py  PPO 智能体 (主力)
   demo_v2.py / demo_ppo.py   加载模型演示
   sensitivity.py   敏感度分析
+  fit_detection_from_cicids.py  CIC-IDS 数据拟合
   test_local_v2.py  冒烟测试
+  multiagent/      蓝队对抗 (隔离)
+    env_ma.py / train_red_vs_random.py / train_red_vs_rule.py
+    train_selfplay.py / train_selfplay_rnn.py (GRU版)
 GUIDE.md        完整技术解读 (13 章)
+SUMMARY.md      本文件
+FINAL.md        最终总结
 ```
 
 ## 运行
@@ -145,8 +154,13 @@ python3 src/fit_detection_from_cicids.py --data-dir archive --out configs/env_fi
 
 ## 下一步可能方向
 
-1. **蓝队对抗（防御智能体）**：引入会学习的防御方，形成非平稳博弈。真实攻防对抗的终极形态，但论文级难度（自博弈 + 非平稳收敛）。
-2. **真实数据拟合**：用 CIC-IDS2017 等数据集拟合检测率，把参数从经验估计升级为数据驱动。
-3. POMDP B 步（RNN 策略）：当前规模未暴露记忆需求，暂缓。
+1. ✅ **蓝队对抗**：已完成7轮实验（见阶段9），五种修复全部失败，根因是攻防不对称物理结构
+2. ✅ **真实数据拟合**：已完成 CIC-IDS2017 拟合（见阶段7）
+3. ✅ **真实 IDS 验证**：已完成 Suricata 回放（见阶段8），证明 AUC 代理高估
+4. ✅ **控制博弈**：已完成30轮实验（见阶段10），证明同质对称+采样评估+长期训练能产生螺旋博弈
+5. 🔜 **真实网络仿真环境对接**：CybORG、CALDERA
+6. 🔜 **策略语义分析**：提取纳什均衡混合策略的语义
+
+多智能体完整分析见 `control-game/MULTIAGENT_FINDINGS.md`。
 
 详细技术解读、局限分析、术语表见 `GUIDE.md`。

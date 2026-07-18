@@ -92,31 +92,59 @@ rl-attack-defense/          # 主项目
 │       ├── env_ma.py
 │       ├── train_red_vs_random.py
 │       ├── train_red_vs_rule.py
-│       └── train_selfplay.py
+│       ├── train_selfplay.py
+│       └── train_selfplay_rnn.py   # GRU版
 ├── configs/                # 全部YAML配置
 │   ├── env_default.yaml / env_6node.yaml
 │   ├── env_default_dynamic.yaml / env_6node_dynamic.yaml
 │   ├── env_default_dynamic_prob.yaml
 │   └── env_fitted.yaml
 ├── GUIDE.md                # 13章技术解读
-├── SUMMARY.md              # 9阶段全貌
+├── SUMMARY.md              # 10阶段全貌
 ├── FINAL.md                # 本文件
 └── models/
 
 ctf-selfplay/               # CTF子项目
 ├── src/
 │   ├── ctf_env.py
-│   └── train_ctf.py
+│   ├── train_ctf.py
+│   └── train_fp.py
 └── SUMMARY.md
+
+control-game/               # 控制博弈子项目
+├── src/
+│   ├── env.py / train.py / train_full.py   # v1 同质
+│   ├── env_v2.py / train_v2.py             # v2 节点异构
+│   ├── env_v3.py / train_v3.py             # v3 能力异构
+│   ├── env_v4.py / train_v4.py             # v4 POMDP+GRU
+│   ├── meta_game.py                        # 元博弈分析
+│   ├── demo.py / analyze.py
+│   └── ...
+└── MULTIAGENT_FINDINGS.md  # 30轮实验完整分析
 ```
 
 ## 边界与未来
 
 | 能做 | 不能做（当前框架下） |
 |------|---------------------|
-| 单智能体PPO稳定学到攻击链 | self-play产生有意义的攻防博弈 |
+| 单智能体PPO稳定学到攻击链 | 红蓝对抗产生博弈（信息结构限制，5种修复全失败） |
 | 动态检测+概率利用真实模拟 | 真实IDS检测率拟合（AUC是高估代理） |
 | CIC-IDS数据驱动代理detection | 蓝队从不完美信息学到主动防御 |
-| 敏感度分析证明策略ROBUST | 多智能体博弈收敛 |
+| 敏感度分析证明策略ROBUST | CTF产生博弈（策略确定性，entropy塌缩） |
+| **控制博弈产生螺旋博弈** | 异构博弈稳定螺旋（对称性是必要条件） |
+| **元博弈分析：四环境全收敛到纳什均衡** | 大种群改善博弈（pop=8不如pop=3） |
 
-跨越边界的方向（需要论文级投入）：虚拟博弈/NFSP/种群训练、真实IDS规则覆盖、蓝队预测性观测、差异化竞争奖励设计。
+跨越边界的方向（需要论文级投入）：真实网络仿真环境对接（CybORG、CALDERA）、策略语义分析、更大规模异构博弈设计。
+
+## 多智能体研究（30轮实验，五维度框架）
+
+红蓝对抗（7轮）和 CTF（8轮）都失败后，控制博弈（15轮）突破——同质对称 + 采样评估 + 长期训练产生了四度易手的螺旋博弈。元博弈分析证明四环境策略全部收敛到纳什均衡。
+
+五维度框架（全部经充分验证）：
+1. **游戏结构**：需要反超机制（红蓝无反超→失败，控制有反超→成功）
+2. **信息结构**：防御方观测不能滞后（红蓝告警滞后→蓝队学不动）
+3. **策略熵**：不能塌缩到确定（CTF预训练→entropy 0→采样无效）
+4. **博弈对称性**：对称→稳定螺旋（v1四度易手），异构→不稳定（v2/v3碾压）
+5. **部分可观测**：GRU可弥补但增加平局（v4 POMDP→螺旋仍存活）
+
+完整分析见 `control-game/MULTIAGENT_FINDINGS.md`。
